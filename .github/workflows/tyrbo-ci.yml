@@ -1,0 +1,83 @@
+# TYRBO-PATCH: fork CI. Upstream's ci.yml is repo-gated to
+# activepieces/activepieces and never runs here.
+name: Tyrbo CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - tyrbo
+
+permissions:
+  contents: read
+
+jobs:
+  ee-gate:
+    name: EE license gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Proprietary directories must not exist
+        run: |
+          fail=0
+          for dir in packages/ee packages/server/api/src/app/ee; do
+            if [ -e "$dir" ]; then
+              echo "::error::proprietary directory '$dir' must not exist in this fork (see NOTICE)"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: No imports from ee/ paths
+        run: |
+          # packages/core/shared/src/lib/ee holds MIT-licensed type definitions and is
+          # intentionally excluded; everything else must not import through an ee/ path.
+          matches=$(grep -rnE "from ['\"][^'\"]*[/.]ee/|require\(['\"][^'\"]*[/.]ee/" \
+            packages/server packages/web/src packages/cli/src packages/tests-e2e \
+            --include='*.ts' --include='*.tsx' \
+            --exclude-dir=node_modules --exclude-dir=dist 2>/dev/null || true)
+          if [ -n "$matches" ]; then
+            echo "::error::found imports from ee/ paths — proprietary EE code must not be referenced"
+            echo "$matches"
+            exit 1
+          fi
+          echo "no ee/ imports found"
+
+  build:
+    name: Build & unit tests
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      # active-invariant unit test drives real BullMQ against this redis;
+      # overrides the docker-hostname default in .env.tests
+      AP_REDIS_HOST: localhost
+      AP_REDIS_PORT: 6379
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - run: bun install --frozen-lockfile
+
+      - name: Build core packages, api, worker, web
+        run: npx turbo run build --filter=api --filter=worker --filter=web
+
+      - name: Lint
+        run: npm run lint-core
+
+      - name: Unit tests
+        run: npx turbo run test-unit --filter=api
+
+      - name: Migration drift check
+        run: npx turbo run check-migrations --filter=api
