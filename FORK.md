@@ -16,7 +16,7 @@ Docker images + published npm packages. Master plan: `tyrbo` repo → `docs/PLAN
 | # | Status | Patch |
 |---|--------|-------|
 | 1 | done | Delete proprietary EE code (`packages/ee/`, `packages/server/api/src/app/ee/`) + `NOTICE` + CI grep-gate (`.github/workflows/tyrbo-ci.yml`). CE call sites now import from `packages/server/api/src/app/tyrbo/ce-defaults.ts` (one MIT stub layer, same symbol names); `app/tyrbo/tyrbo-project-module.ts` serves `/v1/projects` + re-registers the CE worker project controller; migration chain squashed to one generated baseline (`1806100000000-TyrboBaseline.ts`, drift-gated by `check-migrations`) |
-| 2 | planned | Brand/theme layer on `packages/web` (tokens, logos, links) — one theme module, not scattered edits |
+| 2 | done | Brand/theme layer: server `app/tyrbo/tyrbo-theme.ts` feeds the default THEME flag (name, logos, primary); web `styles/tyrbo-theme.css` overrides the token blocks (bg `#06070A`, purple primary, brand gradient var); assets in `packages/web/public/tyrbo/`; dark-first default; title/favicon via vite config |
 | 3 | planned | Auth bridge: accept Tyrbo-minted JWTs; map `org_id → project` |
 | 4 | planned | Run-completion webhook → Tyrbo product API (credit debits + run mirror) |
 | 5 | planned | Register `@tyrbo/piece-browser` + `device-routing` queue tag for local execution (session S9) |

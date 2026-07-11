@@ -1,5 +1,6 @@
 import { PlatformThemeColors } from '@activepieces/shared'
 import tinycolor from 'tinycolor2'
+import { tyrboBrand } from '../tyrbo/tyrbo-theme'
 
 function generateColorVariations(defaultColor: string) {
     const defaultColorObj = tinycolor(defaultColor)
@@ -72,10 +73,5 @@ export function generateTheme({
     }
 }
 
-export const defaultTheme = generateTheme({
-    primaryColor: '#6e41e2',
-    websiteName: 'Activepieces',
-    fullLogoUrl: 'https://cdn.activepieces.com/brand/full-logo.png',
-    favIconUrl: 'https://cdn.activepieces.com/brand/logo.svg',
-    logoIconUrl: 'https://cdn.activepieces.com/brand/logo.svg',
-})
+// TYRBO-PATCH: default branding comes from the tyrbo theme module
+export const defaultTheme = generateTheme(tyrboBrand)
