@@ -170,8 +170,9 @@ describe('flowTriggerSideEffect', () => {
                 ignoreError: true,
             })
 
+            // TYRBO-PATCH: aligned with the wide-event log shape used by the source
             expect(mockLog.warn).toHaveBeenCalledWith(
-                expect.objectContaining({ flowId: 'flow-1' }),
+                expect.objectContaining({ flow: { id: 'flow-1' } }),
                 expect.stringContaining('Ignored error'),
             )
         })

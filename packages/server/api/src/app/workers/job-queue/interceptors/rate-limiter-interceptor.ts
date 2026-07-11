@@ -4,11 +4,10 @@ import { ApEdition, ExecuteFlowJobData, JOB_PRIORITY, JobData, PlanName, RATE_LI
 import { FastifyBaseLogger } from 'fastify'
 import { getConcurrencyPoolSetKey, getPlatformPlanNameKey } from '../../../database/redis/keys'
 import { distributedStore, redisConnections } from '../../../database/redis-connections'
-import { concurrencyPoolService } from '../../../ee/platform/concurrency-pool/concurrency-pool.service'
-import { workerGroupService } from '../../../ee/platform/platform-plan/worker-group.service'
 import { system } from '../../../helper/system/system'
 import { AppSystemProp } from '../../../helper/system/system-props'
 import { projectWorkerGroupService } from '../../../project/project-worker-group.service'
+import { concurrencyPoolService, workerGroupService } from '../../../tyrbo/ce-defaults'
 import { workerCapacity } from '../../machine/worker-capacity'
 import { InterceptorResult, InterceptorVerdict, JobInterceptor } from '../job-interceptor'
 

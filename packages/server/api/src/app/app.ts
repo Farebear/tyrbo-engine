@@ -12,9 +12,7 @@ import { globalRegistry } from 'zod/v4/core'
 import { agentsModule } from './agents/agents-module'
 import { aiProviderService } from './ai/ai-provider-service'
 import { aiProviderModule } from './ai/ai-provider.module'
-import { aiToolConfigModule } from './ai/ai-tool-config.module'
 import { platformAnalyticsModule } from './analytics/platform-analytics.module'
-import { setPlatformOAuthService } from './app-connection/app-connection-service/oauth2'
 import { appConnectionModule } from './app-connection/app-connection.module'
 import { platformAppConnectionModule } from './app-connection/platform-app-connection.module'
 import { authenticationModule } from './authentication/authentication.module'
@@ -25,57 +23,15 @@ import { rateLimitModule } from './core/security/rate-limit'
 import { authenticationMiddleware } from './core/security/v2/authn/authentication-middleware'
 import { authorizationMiddleware } from './core/security/v2/authz/authorization-middleware'
 import { distributedLock, redisConnections } from './database/redis-connections'
-import { alertsModule } from './ee/alerts/alerts-module'
-import { apiKeyModule } from './ee/api-keys/api-key-module'
-import { platformOAuth2Service } from './ee/app-connections/platform-oauth2-service'
-import { appCredentialModule } from './ee/app-credentials/app-credentials.module'
-import { appSumoModule } from './ee/appsumo/appsumo.module'
-import { auditEventModule } from './ee/audit-logs/audit-event-module'
-import { enterpriseLocalAuthnModule } from './ee/authentication/enterprise-local-authn/enterprise-local-authn-module'
-import { federatedAuthModule } from './ee/authentication/federated-authn/federated-authn-module'
-import { otpModule } from './ee/authentication/otp/otp-module'
-import { rbacMiddleware } from './ee/authentication/project-role/rbac-middleware'
-import { authnSsoSamlModule } from './ee/authentication/saml-authn/authn-sso-saml-module'
-import { chatEvalModule } from './ee/chat/chat-eval-controller'
-import { chatModule } from './ee/chat/chat.module'
-import { connectionKeyModule } from './ee/connection-keys/connection-key.module'
-import { embedSubdomainModule } from './ee/embed-subdomain/embed-subdomain.module'
-import { enterpriseFlagsHooks } from './ee/flags/enterprise-flags.hooks'
-import { flowRunTrackingModule } from './ee/flow-run-tracking/flow-run-tracking-module'
-import { globalConnectionModule } from './ee/global-connections/global-connection-module'
-import { appearanceHelper } from './ee/helper/appearance-helper'
-import { licenseKeysModule } from './ee/license-keys/license-keys-module'
-import { managedAuthnModule } from './ee/managed-authn/managed-authn-module'
-import { oauthAppModule } from './ee/oauth-apps/oauth-app.module'
-import { platformPieceModule } from './ee/pieces/platform-piece-module'
-import { adminPlatformModule } from './ee/platform/admin/admin-platform.controller'
-import { adminPlatformTemplatesCloudModule } from './ee/platform/admin/templates/admin-platform-templates-cloud.module'
-import { platformAiCreditsService } from './ee/platform/platform-plan/platform-ai-credits.service'
-import { platformPlanModule } from './ee/platform/platform-plan/platform-plan.module'
-import { platformWebhooksModule } from './ee/platform-webhooks/platform-webhooks.module'
-import { projectEnterpriseHooks } from './ee/projects/ee-project-hooks'
-import { platformProjectBackgroundJobs } from './ee/projects/platform-project-jobs'
-import { platformProjectModule } from './ee/projects/platform-project-module'
-import { projectMemberModule } from './ee/projects/project-members/project-member.module'
-import { gitRepoModule } from './ee/projects/project-release/git-sync/git-sync.module'
-import { projectReleaseModule } from './ee/projects/project-release/project-release.module'
-import { projectReplaceModule } from './ee/projects/project-replace/project-replace.module'
-import { projectRoleModule } from './ee/projects/project-role/project-role.module'
-import { scimModule } from './ee/scim/scim-module'
-import { secretManagersModule } from './ee/secret-managers/secret-managers.module'
-import { signingKeyModule } from './ee/signing-key/signing-key-module'
-import { userModule } from './ee/users/user.module'
+// TYRBO-PATCH: proprietary EE module imports removed with packages/server/api/src/app/ee
 import { fileModule } from './file/file.module'
 import { flagModule } from './flags/flag.module'
-import { flagHooks } from './flags/flags.hooks'
 import { flowBackgroundJobs } from './flows/flow/flow.jobs'
 import { humanInputModule } from './flows/flow/human-input/human-input.module'
 import { flowRunModule } from './flows/flow-run/flow-run-module'
-import { resumePageHooks } from './flows/flow-run/waitpoint/resume-page-hooks'
 import { flowModule } from './flows/flow.module'
 import { folderModule } from './flows/folder/folder.module'
 import { domainHelper } from './helper/domain-helper'
-import { exceptionHandler } from './helper/exception-handler'
 import { clientLogsModule } from './helper/logs/client-logs.module'
 import { openapiModule } from './helper/openapi/openapi.module'
 import { rejectedPromiseHandler } from './helper/promise-handler'
@@ -96,15 +52,14 @@ import { pieceModule } from './pieces/metadata/piece-metadata-controller'
 import { pieceMetadataService } from './pieces/metadata/piece-metadata-service'
 import { pieceSyncService } from './pieces/piece-sync-service'
 import { tagsModule } from './pieces/tags/tags-module'
-import { platformBackgroundJobs } from './platform/platform-jobs'
 import { platformModule } from './platform/platform.module'
-import { projectHooks } from './project/project-hooks'
 import { storeEntryModule } from './store-entry/store-entry.module'
 import { tablesModule } from './tables/tables.module'
 import { templateModule } from './template/template.module'
 import { toolSearchReindexJob } from './tool-search/tool-search-reindex.job'
 import { appEventRoutingModule } from './trigger/app-event-routing/app-event-routing.module'
 import { triggerModule } from './trigger/trigger.module'
+import { tyrboProjectModule } from './tyrbo/tyrbo-project-module'
 import { platformUserModule } from './user/platform/platform-user-module'
 import { invitationModule } from './user-invitations/user-invitation.module'
 import { variableModule } from './variable/variable.module'
@@ -202,7 +157,7 @@ export const setupApp = async (app: FastifyInstance): Promise<FastifyInstance> =
     })
 
     app.addHook('preHandler', authorizationMiddleware)
-    app.addHook('preHandler', rbacMiddleware)
+    // TYRBO-PATCH: EE rbacMiddleware removed — it was a no-op in the community edition
 
     const canaryAppUrl = system.get(AppSystemProp.CANARY_APP_URL)
     if (!isNil(canaryAppUrl)) {
@@ -241,18 +196,16 @@ export const setupApp = async (app: FastifyInstance): Promise<FastifyInstance> =
     await app.register(mcpOAuthApproveController)
     await app.register(agentsModule)
     await app.register(platformUserModule)
-    await app.register(alertsModule)
+    // TYRBO-PATCH: EE-only modules (alerts, license keys, flow-run tracking,
+    // platform user admin) removed with packages/server/api/src/app/ee
     await app.register(invitationModule)
     await app.register(workerModule)
     await workerCapacity.setup()
     await app.register(oidcModule)
     await aiProviderService(app.log).setup()
     await app.register(aiProviderModule)
-    await app.register(licenseKeysModule)
-    await app.register(flowRunTrackingModule)
     await app.register(tablesModule)
     await app.register(knowledgeBaseModule)
-    await app.register(userModule)
     await app.register(templateModule)
     await app.register(platformAnalyticsModule)
 
@@ -264,7 +217,6 @@ export const setupApp = async (app: FastifyInstance): Promise<FastifyInstance> =
     }
 
     systemJobHandlers.registerJobHandler(SystemJobName.DELETE_FLOW, (data) => flowBackgroundJobs(app.log).deleteFlowHandler(data))
-    systemJobHandlers.registerJobHandler(SystemJobName.HARD_DELETE_PROJECT, (data) => platformProjectBackgroundJobs(app.log).hardDeleteProjectHandler(data))
 
     app.get(
         '/redirect',
@@ -290,83 +242,13 @@ export const setupApp = async (app: FastifyInstance): Promise<FastifyInstance> =
     app.log.info({
         edition,
     }, 'Activepieces Edition')
-    switch (edition) {
-        case ApEdition.CLOUD:
-            await app.register(adminPlatformModule)
-            await app.register(adminPlatformTemplatesCloudModule)
-            await app.register(appCredentialModule)
-            await app.register(connectionKeyModule)
-            await app.register(platformProjectModule)
-            await platformAiCreditsService(app.log).init()
-            await app.register(platformPlanModule)
-            await app.register(projectMemberModule)
-            await app.register(appSumoModule)
-            await app.register(signingKeyModule)
-            await app.register(authnSsoSamlModule)
-            await app.register(managedAuthnModule)
-            await app.register(oauthAppModule)
-            await app.register(platformPieceModule)
-            await app.register(otpModule)
-            await app.register(enterpriseLocalAuthnModule)
-            await app.register(federatedAuthModule)
-            await app.register(apiKeyModule)
-            await app.register(gitRepoModule)
-            await app.register(auditEventModule)
-            await app.register(platformWebhooksModule)
-            await app.register(projectRoleModule)
-            await app.register(projectReleaseModule)
-            await app.register(projectReplaceModule)
-            await app.register(globalConnectionModule)
-            await app.register(secretManagersModule)
-            await app.register(scimModule)
-            await app.register(embedSubdomainModule)
-            await app.register(chatModule)
-            await app.register(chatEvalModule)
-            await app.register(aiToolConfigModule)
-            setPlatformOAuthService(platformOAuth2Service(app.log))
-            projectHooks.set(projectEnterpriseHooks)
-            flagHooks.set(enterpriseFlagsHooks)
-            resumePageHooks.set((log) => ({ getTheme: (params) => appearanceHelper.getTheme({ ...params, log }) }))
-            exceptionHandler.initializeSentry(system.get(AppSystemProp.SENTRY_DSN))
-            systemJobHandlers.registerJobHandler(SystemJobName.HARD_DELETE_PLATFORM, (data) => platformBackgroundJobs(app.log).hardDeletePlatformHandler(data))
-            break
-        case ApEdition.ENTERPRISE:
-            await platformAiCreditsService(app.log).init()
-            await app.register(platformPlanModule)
-            await app.register(platformProjectModule)
-            await app.register(projectMemberModule)
-            await app.register(signingKeyModule)
-            await app.register(authnSsoSamlModule)
-            await app.register(managedAuthnModule)
-            await app.register(oauthAppModule)
-            await app.register(platformPieceModule)
-            await app.register(otpModule)
-            await app.register(enterpriseLocalAuthnModule)
-            await app.register(federatedAuthModule)
-            await app.register(apiKeyModule)
-            await app.register(gitRepoModule)
-            await app.register(auditEventModule)
-            await app.register(platformWebhooksModule)
-            await app.register(projectRoleModule)
-            await app.register(projectReleaseModule)
-            await app.register(projectReplaceModule)
-            await app.register(globalConnectionModule)
-            await app.register(secretManagersModule)
-            await app.register(scimModule)
-            await app.register(embedSubdomainModule)
-            await app.register(chatModule)
-            await app.register(chatEvalModule)
-            await app.register(aiToolConfigModule)
-            setPlatformOAuthService(platformOAuth2Service(app.log))
-            projectHooks.set(projectEnterpriseHooks)
-            flagHooks.set(enterpriseFlagsHooks)
-            resumePageHooks.set((log) => ({ getTheme: (params) => appearanceHelper.getTheme({ ...params, log }) }))
-            break
-        case ApEdition.COMMUNITY:
-            await app.register(platformProjectModule)
-            await app.register(communityPiecesModule)
-            break
+    // TYRBO-PATCH: this fork ships only the MIT community edition; the EE
+    // cloud/enterprise wiring was removed with packages/server/api/src/app/ee.
+    if (edition !== ApEdition.COMMUNITY) {
+        throw new Error(`Unsupported AP_EDITION '${edition}': tyrbo-engine only supports the community edition`)
     }
+    await app.register(tyrboProjectModule)
+    await app.register(communityPiecesModule)
 
     const isCanaryApp = system.getBoolean(AppSystemProp.IS_CANARY_APP) ?? false
     if (isCanaryApp) {

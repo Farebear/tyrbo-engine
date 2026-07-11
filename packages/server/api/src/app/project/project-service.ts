@@ -210,18 +210,17 @@ export async function applyProjectsAccessFilters<T extends ObjectLiteral>(
     queryBuilder: SelectQueryBuilder<T>,
     params: ApplyProjectsAccessFiltersParams,
 ): Promise<void> {
-    const { platformId, userId, isPrivileged } = params
+    const { userId, isPrivileged } = params
     if (isPrivileged) {
         return
     }
 
+    // TYRBO-PATCH: the project_member table was removed with the EE tree;
+    // non-privileged users see the projects they own (any type).
     queryBuilder.andWhere(new Brackets(qb => {
         qb.where(
-            'project."ownerId" = :userId AND project.type = :personalType',
-            { userId, personalType: ProjectType.PERSONAL },
-        ).orWhere(
-            'project.id IN (SELECT "projectId" FROM project_member WHERE "userId" = :userId AND "platformId" = :platformId)',
-            { userId, platformId },
+            'project."ownerId" = :userId',
+            { userId },
         )
     }))
 }

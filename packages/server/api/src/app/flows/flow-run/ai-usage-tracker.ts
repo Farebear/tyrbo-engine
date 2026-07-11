@@ -1,11 +1,11 @@
 import { isNil } from '@activepieces/core-utils'
 import { FileType, FlowRun, FlowVersion, LogSliceRef } from '@activepieces/shared'
 import { FastifyBaseLogger } from 'fastify'
-import { platformPlanService } from '../../ee/platform/platform-plan/platform-plan.service'
 import { fileService } from '../../file/file.service'
 import { system } from '../../helper/system/system'
 import { BillingEvents, captureBillingEvent } from '../../helper/telemetry.utils'
 import { projectService } from '../../project/project-service'
+import { platformPlanService } from '../../tyrbo/ce-defaults'
 import { aiUsageExtractor } from './ai-usage-extractor'
 import { flowRunService } from './flow-run-service'
 

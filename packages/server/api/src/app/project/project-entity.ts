@@ -184,15 +184,7 @@ export const ProjectEntity = new EntitySchema<ProjectSchema>({
             target: 'table_webhook',
             inverseSide: 'project',
         },
-        pool: {
-            type: 'many-to-one',
-            target: 'concurrency_pool',
-            onDelete: 'SET NULL',
-            nullable: true,
-            joinColumn: {
-                name: 'poolId',
-                foreignKeyConstraintName: 'fk_project_pool_id',
-            },
-        },
+        // TYRBO-PATCH: concurrency_pool relation removed with the EE tree;
+        // poolId remains a plain nullable column.
     },
 })

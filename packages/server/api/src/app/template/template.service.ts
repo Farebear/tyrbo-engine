@@ -3,8 +3,8 @@ import { CreateTemplateRequestBody, FlowVersionTemplate, ListTemplatesRequestQue
 import { FastifyBaseLogger } from 'fastify'
 import { ArrayContains, ArrayOverlap, Equal, IsNull } from 'typeorm'
 import { repoFactory } from '../core/db/repo-factory'
-import { platformTemplateService } from '../ee/template/platform-template.service'
 import { paginationHelper } from '../helper/pagination/pagination-utils'
+import { platformTemplateService } from '../tyrbo/ce-defaults'
 import { templateValidator } from './template-validator'
 import { TemplateEntity } from './template.entity'
 
