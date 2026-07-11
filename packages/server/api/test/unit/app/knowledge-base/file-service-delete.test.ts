@@ -21,6 +21,9 @@ vi.mock('../../../../src/app/helper/system/system', () => ({
     system: {
         getOrThrow: vi.fn().mockReturnValue('DB'),
         getNumberOrThrow: vi.fn().mockReturnValue(30),
+        // TYRBO-PATCH: redis settings resolution calls getNumber/getBoolean
+        getNumber: vi.fn().mockReturnValue(undefined),
+        getBoolean: vi.fn().mockReturnValue(undefined),
         get: vi.fn().mockReturnValue(undefined),
     },
 }))

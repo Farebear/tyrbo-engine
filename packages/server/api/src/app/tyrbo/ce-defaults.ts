@@ -8,6 +8,8 @@ import { ActivepiecesError, ErrorCode, isNil, Permission, ProjectId, ProjectRole
 import { DefaultProjectRole, OPEN_SOURCE_PLAN, PlatformPlanLimits, PlatformRole, Principal, PrincipalType, ProjectType, rolePermissions, SeekPage, TableState } from '@activepieces/shared'
 import { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
 import { repoFactory } from '../core/db/repo-factory'
+import { getConcurrencyPoolLimitKey, getProjectConcurrencyPoolKey } from '../database/redis/keys'
+import { distributedStore } from '../database/redis-connections'
 import { ProjectEntity } from '../project/project-entity'
 import { UserEntity } from '../user/user-entity'
 
@@ -204,12 +206,14 @@ export const workerGroupService = (_log: FastifyBaseLogger) => ({
     },
 })
 
+// Concurrency pools stay functional: the pool mapping lives in redis under
+// MIT-defined keys and the rate limiter depends on it.
 export const concurrencyPoolService = (_log: FastifyBaseLogger) => ({
-    async getPoolLimit(_poolId: string): Promise<number | null> {
-        return null
+    async getPoolLimit(poolId: string): Promise<number | null> {
+        return distributedStore.get<number>(getConcurrencyPoolLimitKey(poolId))
     },
-    async getProjectPoolId(_projectId: string): Promise<string | null> {
-        return null
+    async getProjectPoolId(projectId: string): Promise<string | null> {
+        return distributedStore.get<string>(getProjectConcurrencyPoolKey(projectId))
     },
 })
 

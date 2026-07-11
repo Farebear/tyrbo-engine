@@ -20,6 +20,14 @@ vi.mock('../../../../../src/app/workers/migrations/job-data-migrations', () => (
 const mockPreDispatch = vi.fn()
 const mockOnJobFinished = vi.fn().mockResolvedValue(undefined)
 
+// TYRBO-PATCH: the zombie interceptor checks trigger_source in the DB; a
+// unit test has no datasource, so pretend the trigger source is active
+vi.mock('../../../../../src/app/trigger/trigger-source/trigger-source-service', () => ({
+    triggerSourceRepo: () => ({
+        findOneBy: vi.fn().mockResolvedValue({ id: 'trigger-source-1' }),
+    }),
+}))
+
 vi.mock('../../../../../src/app/workers/job-queue/interceptors/rate-limiter-interceptor', () => ({
     rateLimiterInterceptor: {
         preDispatch: (...args: unknown[]) => mockPreDispatch(...args),
@@ -45,7 +53,9 @@ function createMockJob(id: string, data?: Record<string, unknown>, deferredFailu
     return {
         id,
         name: `job-name-${id}`,
-        data: { projectId: 'proj-1', platformId: 'plat-1', ...data },
+        // TYRBO-PATCH: tryDequeue now schema-validates job data; use a
+        // minimal valid JobData variant so the fixture passes the gate
+        data: { jobType: 'RENEW_WEBHOOK', schemaVersion: 1, projectId: 'proj-1', platformId: 'plat-1', flowVersionId: 'fv-1', flowId: 'f-1', jobsStartedAt: new Date().toISOString(), ...data },
         attemptsMade: 0,
         deferredFailure,
         moveToDelayed: vi.fn().mockResolvedValue(undefined),
@@ -75,7 +85,7 @@ describe('tryDequeue', () => {
         expect(result).not.toBeNull()
         expect(result!.jobId).toBe('job-1')
         expect(result!.engineToken).toBe('engine-token')
-        expect(result!.timeoutInSeconds).toBe(600)
+        // TYRBO-PATCH: timeoutInSeconds is no longer part of the dequeue result
         expect(result!.token).toMatch(/^token-/)
         expect(result!.queueName).toBe('test-queue')
         expect(job.updateData).not.toHaveBeenCalled()
