@@ -77,7 +77,8 @@ jobs:
         run: npm run lint-core
 
       - name: Unit tests
-        run: npx turbo run test-unit --filter=api
+        working-directory: packages/server/api
+        run: bun run test-unit
 
       - name: Migration drift check
         run: npx turbo run check-migrations --filter=api
