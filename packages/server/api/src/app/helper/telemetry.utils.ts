@@ -8,7 +8,9 @@ import { projectService } from '../project/project-service'
 import { system } from './system/system'
 import { AppSystemProp } from './system/system-props'
 
-const telemetryEnabled = system.getBoolean(AppSystemProp.TELEMETRY_ENABLED)
+// TYRBO-PATCH: telemetry/phone-home is permanently disabled in this fork,
+// regardless of environment configuration.
+const telemetryEnabled = false
 
 let posthogInstance: PostHog | null = null
 function getPostHog(): PostHog {
@@ -77,12 +79,8 @@ export const telemetry = (log: FastifyBaseLogger) => ({
     },
 })
 
-export function captureBillingEvent({ licenseKey, event, properties }: CaptureBillingEventParams): void {
-    getPostHog().capture({
-        distinctId: licenseKey,
-        event,
-        properties,
-    })
+export function captureBillingEvent(_params: CaptureBillingEventParams): void {
+    // TYRBO-PATCH: billing telemetry disabled with the rest of phone-home.
 }
 
 export async function shutdownTelemetry(): Promise<void> {
