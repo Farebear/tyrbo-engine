@@ -35,10 +35,27 @@ Docker images + published npm packages. Master plan: `tyrbo` repo → `docs/PLAN
 git remote add upstream https://github.com/activepieces/activepieces.git  # once
 git fetch upstream
 git checkout main && git merge --ff-only upstream/main && git push origin main
-git checkout tyrbo && git merge main
+git checkout tyrbo && git checkout -b upstream-merge-$(date +%Y%m) && git merge main
 # resolve conflicts ONLY in TYRBO-PATCH-tagged regions; everything else takes upstream
-# then: run the golden-flow suite (tyrbo repo → engine smoke tests) before pushing
-git push origin tyrbo
+# then open a PR against tyrbo — the golden-flow suite gates it in CI
 ```
+
+Merge mechanics specific to this fork:
+
+- **Deleted proprietary trees** (`packages/ee/`, `packages/server/api/src/app/ee/`,
+  worker `jobs/ee`, chat-eval, ee/cloud tests): upstream will re-add or modify
+  files there — resolve with `git rm -r` on those paths (keep deleted). The
+  `ee-gate` CI job catches anything missed.
+- **`app.ts` / stub layer**: new EE imports or edition-switch registrations
+  take the deleted side; if upstream adds a NEW EE symbol that CE code consumes,
+  add a community-default stub to `app/tyrbo/ce-defaults.ts` and swap the import.
+- **Migrations** (`postgres-connection.ts`): our `getMigrations()` returns only
+  `TyrboBaseline`. Take upstream's new migration files, then append the ones that
+  touch community tables after the baseline; drop migrations that only touch
+  EE tables. `check-migrations` + the golden-flow suite verify the result.
+- **Verification order**: `bun install && npx turbo run build --filter=api
+  --filter=worker --filter=web && (cd packages/server/api && bun run test-unit)`,
+  then the golden-flow suite (`golden-flows/README.md`) — it runs automatically
+  on the merge PR.
 
 If a merge touches a patch, update the table above in the same PR.
