@@ -61,6 +61,9 @@ const systemPropValidators: {
     [AppSystemProp.EVENT_DESTINATION_TIMEOUT_SECONDS]: numberValidator,
     [AppSystemProp.PAUSED_FLOW_TIMEOUT_DAYS]: numberValidator,
     [AppSystemProp.APP_WEBHOOK_SECRETS]: stringValidator,
+    // TYRBO-PATCH: auth bridge configuration
+    [AppSystemProp.TYRBO_JWT_PUBLIC_KEY]: stringValidator,
+    [AppSystemProp.TYRBO_JWT_ISSUER]: stringValidator,
     [AppSystemProp.MAX_FILE_SIZE_MB]: numberValidator,
     [AppSystemProp.MAX_FLOW_RUN_LOG_SIZE_MB]: numberValidator,
     [AppSystemProp.SANDBOX_MEMORY_LIMIT]: numberValidator,

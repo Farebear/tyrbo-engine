@@ -73,7 +73,10 @@ async function hasAccessToProject({ userId, projectId }: { userId: string, proje
     if (isNil(user) || user.platformId !== project.platformId) {
         return false
     }
-    return user.platformRole === PlatformRole.ADMIN || project.ownerId === user.id
+    // tyrboMembers is written by the auth bridge (tyrbo-auth-bridge.ts):
+    // every user of an org is a member of that org's project
+    const members = (project.metadata as { tyrboMembers?: string[] } | null)?.tyrboMembers ?? []
+    return user.platformRole === PlatformRole.ADMIN || project.ownerId === user.id || members.includes(user.id)
 }
 
 export const getPrincipalRoleOrThrow = async (userId: string, projectId: ProjectId, _log: FastifyBaseLogger): Promise<ProjectRole> => {
