@@ -38,7 +38,8 @@ const setFavicon = (url: string) => {
 
 export function ThemeProvider({
   children,
-  defaultTheme = 'system',
+  // TYRBO-PATCH: the tyrbo brand is dark-first
+  defaultTheme = 'dark',
   storageKey = 'ap-ui-theme',
   ...props
 }: ThemeProviderProps) {
