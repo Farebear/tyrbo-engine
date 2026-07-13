@@ -1,0 +1,29 @@
+# TYRBO-PATCH: Fly staging config for the engine worker (M1).
+#
+# Deploy:
+#   fly deploy -c tyrbo-deploy/fly.worker.staging.toml --image ghcr.io/farebear/tyrbo-engine-worker:<sha>
+#
+# Secrets (fly secrets set -a tyrbo-engine-worker-staging ...):
+#   AP_WORKER_TOKEN — HS256 JWT signed with the API's AP_JWT_SECRET,
+#                     payload {id, type: "WORKER", iss: "activepieces"}; see README.md
+#
+# No [http_service]: the worker has no inbound traffic, it long-polls the API.
+# It therefore never auto-stops; scale it down manually when staging is idle
+# (fly scale count 0 -a tyrbo-engine-worker-staging).
+
+app = "tyrbo-engine-worker-staging"
+primary_region = "iad"
+
+[build]
+image = "ghcr.io/farebear/tyrbo-engine-worker:tyrbo"
+
+[env]
+AP_CONTAINER_TYPE = "WORKER"
+AP_FRONTEND_URL = "https://tyrbo-engine-api-staging.fly.dev"
+AP_EXECUTION_MODE = "UNSANDBOXED"
+AP_WORKER_CONCURRENCY = "10"
+AP_LOG_LEVEL = "info"
+
+[[vm]]
+size = "shared-cpu-1x"
+memory = "1gb"
