@@ -3,8 +3,10 @@ import { ApEdition, FlowRun, FlowTriggerType, isFailedState, isFlowRunStateTermi
 import dayjs from 'dayjs'
 import { FastifyBaseLogger } from 'fastify'
 import { websocketService } from '../../core/websockets.service'
+import { rejectedPromiseHandler } from '../../helper/promise-handler'
 import { system } from '../../helper/system/system'
 import { alertsService } from '../../tyrbo/ce-defaults'
+import { tyrboRunWebhook } from '../../tyrbo/tyrbo-run-webhook'
 import { flowVersionService } from '../flow-version/flow-version.service'
 import { aiUsageTracker } from './ai-usage-tracker'
 
@@ -17,6 +19,8 @@ export const flowRunHooks = (log: FastifyBaseLogger) => ({
         })) {
             return
         }
+        // TYRBO-PATCH: fire-and-forget run summary to the tyrbo product API
+        rejectedPromiseHandler(tyrboRunWebhook(log).notifyRunFinished(flowRun), log)
         const flowVersion = await flowVersionService(log).getOne(flowRun.flowVersionId)
         const isPieceTrigger = !isNil(flowVersion) && flowVersion.trigger.type === FlowTriggerType.PIECE && !isNil(flowVersion.trigger.settings.triggerName) 
         const isManualTrigger = isPieceTrigger && isManualPieceTrigger({ pieceName: flowVersion.trigger.settings.pieceName, triggerName: flowVersion.trigger.settings.triggerName })
