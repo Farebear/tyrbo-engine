@@ -4,7 +4,7 @@ import { safeHttp } from '@activepieces/server-utils'
 import { AppConnectionType, BaseOAuth2ConnectionValue, OAuth2ConnectionValueWithApp, OAuth2GrantType, resolveValueFromProps } from '@activepieces/shared'
 import { AxiosError } from 'axios'
 import { FastifyBaseLogger } from 'fastify'
-import { secretManagersService } from '../../../../ee/secret-managers/secret-managers.service'
+import { secretManagersService } from '../../../../tyrbo/ce-defaults'
 import {
     ClaimOAuth2Request,
     OAuth2Service,

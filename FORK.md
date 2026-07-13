@@ -15,12 +15,19 @@ Docker images + published npm packages. Master plan: `tyrbo` repo → `docs/PLAN
 
 | # | Status | Patch |
 |---|--------|-------|
-| 1 | planned | Delete `packages/ee/` + add `NOTICE` with MIT attribution |
-| 2 | planned | Brand/theme layer on `react-ui` (tokens, logos, links) — one theme module, not scattered edits |
+| 1 | done | Delete proprietary EE code (`packages/ee/`, `packages/server/api/src/app/ee/`) + `NOTICE` + CI grep-gate (`.github/workflows/tyrbo-ci.yml`). CE call sites now import from `packages/server/api/src/app/tyrbo/ce-defaults.ts` (one MIT stub layer, same symbol names); `app/tyrbo/tyrbo-project-module.ts` serves `/v1/projects` + re-registers the CE worker project controller; migration chain squashed to one generated baseline (`1806100000000-TyrboBaseline.ts`, drift-gated by `check-migrations`) |
+| 2 | planned | Brand/theme layer on `packages/web` (tokens, logos, links) — one theme module, not scattered edits |
 | 3 | planned | Auth bridge: accept Tyrbo-minted JWTs; map `org_id → project` |
 | 4 | planned | Run-completion webhook → Tyrbo product API (credit debits + run mirror) |
-| 5 | planned | Register `@tyrbo/piece-browser` + `device-routing` queue tag for local execution |
+| 5 | planned | Register `@tyrbo/piece-browser` + `device-routing` queue tag for local execution (session S9) |
 | 6 | planned | Disable telemetry/phone-home |
+
+### Patch 1 notes (EE removal)
+
+- The enterprise LICENSE covered exactly `packages/ee/` and `packages/server/api/src/app/ee/`; both are deleted and gated in CI (`ee-gate` job fails on the dirs existing or on any `ee/` import path). `packages/core/shared/src/lib/ee` is MIT-licensed type definitions and stays.
+- CE semantics of the stub layer: project access = platform admin or project owner; plans are the static `OPEN_SOURCE_PLAN`; RBAC/members/SSO/OTP/SMTP/secret-managers/git-sync/chat/alerts are inert.
+- Migrations: fresh deployments run only `TyrboBaseline`. On upstream merges, drop upstream's new migration imports that touch EE-only tables; append the rest after the baseline; `check-migrations` + the golden-flow suite gate the result.
+- `.env.tests` runs `AP_EDITION=ce`; `test-ee`/`test-cloud` targets are gone.
 
 ## Upstream merge runbook (monthly)
 

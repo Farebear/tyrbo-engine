@@ -3,12 +3,12 @@ import { ApEdition, FlowStatus, FlowVersionState, PrewarmDataRequest, PrewarmDat
 import { FastifyBaseLogger } from 'fastify'
 import { accessTokenManager } from '../authentication/lib/access-token-manager'
 import { distributedLock, distributedStore } from '../database/redis-connections'
-import { workerGroupService } from '../ee/platform/platform-plan/worker-group.service'
 import Paginator from '../helper/pagination/paginator'
 import { system } from '../helper/system/system'
 import { platformService } from '../platform/platform.service'
 import { projectService } from '../project/project-service'
 import { projectWorkerGroupService } from '../project/project-worker-group.service'
+import { workerGroupService } from '../tyrbo/ce-defaults'
 import { flowService } from './flow/flow.service'
 
 

@@ -1,7 +1,7 @@
 import { PlatformId } from '@activepieces/core-utils'
 import { PieceCategory, PieceOrderBy, PieceSortBy, SuggestionType } from '@activepieces/shared'
 import { FastifyBaseLogger } from 'fastify'
-import { enterpriseFilteringUtils } from '../../../ee/pieces/filters/piece-filtering-utils'
+import { enterpriseFilteringUtils } from '../../../tyrbo/ce-defaults'
 import { PieceMetadataSchema } from '../piece-metadata-entity'
 import { pieceSearching } from './piece-searching'
 import { pieceSorting } from './piece-sorting'

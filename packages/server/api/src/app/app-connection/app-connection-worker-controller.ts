@@ -2,7 +2,7 @@ import { ActivepiecesError, assertNotNullOrUndefined, ErrorCode, isNil } from '@
 import { AppConnection, EnginePrincipal, GetAppConnectionForWorkerRequestQuery } from '@activepieces/shared'
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { securityAccess } from '../core/security/authorization/fastify-security'
-import { secretManagersService } from '../ee/secret-managers/secret-managers.service'
+import { secretManagersService } from '../tyrbo/ce-defaults'
 import { appConnectionService } from './app-connection-service/app-connection-service'
 
 export const appConnectionWorkerController: FastifyPluginAsyncZod = async (app) => {

@@ -43,10 +43,9 @@ const registry: Partial<Record<WorkerJobType, JobHandler>> = {
 }
 
 // Heavy handlers are loaded on first use so their dependency graph never enters worker memory unless
-// such a job actually runs. The chat agent drags the whole ai-sdk cluster (@ai-sdk/*, ai, mcp) — by
-// far the largest weight — so deferring its evaluation keeps a flow-only worker's idle RSS small.
-const lazyLoaders: Partial<Record<WorkerJobType, () => Promise<JobHandler>>> = {
-    [WorkerJobType.EXECUTE_CHAT_AGENT]: async () => (await import('./jobs/ee/chat/execute-chat-agent')).executeChatAgentJob,
-}
+// such a job actually runs.
+// TYRBO-PATCH: the EE chat-agent job was removed with the EE tree, so no
+// lazy handlers remain; the map stays for upstream-merge compatibility.
+const lazyLoaders: Partial<Record<WorkerJobType, () => Promise<JobHandler>>> = {}
 
 const lazyCache = new Map<WorkerJobType, JobHandler>()

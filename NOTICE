@@ -1,0 +1,32 @@
+tyrbo-engine
+============
+
+This repository is a fork of Activepieces (https://github.com/activepieces/activepieces),
+maintained by Tyrbo (https://tyrbo.ai) as the execution engine for the Tyrbo platform.
+
+Attribution
+-----------
+
+This product includes software developed by Activepieces Inc.
+(https://www.activepieces.com).
+
+Copyright (c) 2020-2024 Activepieces Inc.
+
+The Activepieces community core is licensed under the MIT Expat license (see LICENSE).
+
+Removed proprietary components
+------------------------------
+
+The upstream repository contains components licensed under the Activepieces
+Enterprise license rather than MIT:
+
+  - packages/ee/
+  - packages/server/api/src/app/ee/
+
+These directories and the code they contained have been REMOVED from this fork
+in its first commit and must never be reintroduced. CI enforces that no code
+imports from an `ee/` path. Only the MIT-licensed community core is used,
+modified, and distributed here.
+
+All Tyrbo modifications are tagged with `TYRBO-PATCH` comments and tracked in
+FORK.md. Tyrbo modifications are licensed under the MIT license.

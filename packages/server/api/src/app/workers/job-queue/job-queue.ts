@@ -4,10 +4,10 @@ import { EventDestinationJobData, ExecuteChatAgentJobData, ExecuteFlowJobData, g
 import { Job, Queue } from 'bullmq'
 import { FastifyBaseLogger } from 'fastify'
 import { redisConnections } from '../../database/redis-connections'
-import { workerGroupService } from '../../ee/platform/platform-plan/worker-group.service'
 import { system } from '../../helper/system/system'
 import { AppSystemProp } from '../../helper/system/system-props'
 import { projectWorkerGroupService } from '../../project/project-worker-group.service'
+import { workerGroupService } from '../../tyrbo/ce-defaults'
 import { getPlatformGroupQueueName, getProjectGroupQueueName, QueueName } from '../job'
 import { workerCapacity } from '../machine/worker-capacity'
 

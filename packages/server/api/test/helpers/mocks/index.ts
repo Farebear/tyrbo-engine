@@ -8,9 +8,6 @@ import dayjs from 'dayjs'
 import { FastifyBaseLogger } from 'fastify'
 import { AIProviderSchema } from '../../../src/app/ai/ai-provider-entity'
 import { databaseConnection } from '../../../src/app/database/database-connection'
-import { generateApiKey } from '../../../src/app/ee/api-keys/api-key-service'
-import { OAuthAppWithEncryptedSecret } from '../../../src/app/ee/oauth-apps/oauth-app.entity'
-import { PlatformPlanEntity } from '../../../src/app/ee/platform/platform-plan/platform-plan.entity'
 import { encryptUtils } from '../../../src/app/helper/encryption'
 import { PieceMetadataSchema } from '../../../src/app/pieces/metadata/piece-metadata-entity'
 import { pieceMetadataService } from '../../../src/app/pieces/metadata/piece-metadata-service'
@@ -48,20 +45,6 @@ export const createMockUser = (user?: Partial<User>): User => {
         externalId: user?.externalId,
         identityId: user?.identityId ?? apId(),
         platformId: user?.platformId ?? null,
-    }
-}
-
-export const createMockOAuthApp = async (
-    oAuthApp?: Partial<OAuthApp>,
-): Promise<OAuthAppWithEncryptedSecret> => {
-    return {
-        id: oAuthApp?.id ?? apId(),
-        created: oAuthApp?.created ?? faker.date.recent().toISOString(),
-        updated: oAuthApp?.updated ?? faker.date.recent().toISOString(),
-        platformId: oAuthApp?.platformId ?? apId(),
-        pieceName: oAuthApp?.pieceName ?? faker.lorem.word(),
-        clientId: oAuthApp?.clientId ?? apId(),
-        clientSecret: await encryptUtils.encryptString(faker.lorem.word()),
     }
 }
 
@@ -268,50 +251,6 @@ export const createMockProjectMember = (
     }
 }
 
-const MOCK_SIGNING_KEY_PUBLIC_KEY = `-----BEGIN RSA PUBLIC KEY-----
-MIICCgKCAgEAlnd5vGP/1bzcndN/yRD+ZTd6tuemxaJd+12bOZ2QCXcTM03AKSp3
-NE5QMyIi13PXMg+z1uPowfivPJ4iVTMaW1U00O7JlUduGR0VrG0BCJlfEf852V71
-TfE+2+EpMme9Yw6Gs/YAuOwgVwu3n/XF0il3FTIm1oY1a/MA79rv0RSscnIgCaYJ
-e86LWm+H6753Si0MIId/ajIfYYIndN6qRIlPsgagdL+kljUSPEiIzmV0POxTltBo
-tXL1t7Mu+meJrY85MXG5W8BS05+q6dJql7Cl0UbPK152ziakB+biMI/4hYlaOIBT
-3KeOcz/Jg7Zv21Y0tbdrZ5osVrrNpFsCV7PGyQIUDVmmnCHrOEBS2XM5zOHzTxMl
-JQh3Db318rB5415zuBTzrO+20++03kH4SwZEEBg1SDAInYwLOWldbTuZuD0Hx7P2
-g4a3OqHHVOcAgtsHgmU7/zCgCIETg4KbRdpSsqOm/YJDWWoLDTwvKnH5QHSBacq1
-kxbNAUSuLQESkfZq1Dw5+tdBDJr29bxjmiSggyittTYn1B3iHACNoe4zj9sMQQIf
-j9mmntXsa/leIwBVspiEOHYZwJOe5+goSd8K1VIQJxC1DVBxB2eHxMvuo3eyJ0HE
-DlebIeZy4zrE1LPgRic1kfdemyxvuN3iwZnPGiY79nL1ZNDM3M4ApSMCAwEAAQ==
------END RSA PUBLIC KEY-----`
-
-export const createMockApiKey = (
-    apiKey?: Partial<Omit<ApiKey, 'hashedValue' | 'truncatedValue'>>,
-): ApiKey & { value: string } => {
-    const { secretHashed, secretTruncated, secret } = generateApiKey()
-    return {
-        id: apiKey?.id ?? apId(),
-        created: apiKey?.created ?? faker.date.recent().toISOString(),
-        updated: apiKey?.updated ?? faker.date.recent().toISOString(),
-        displayName: apiKey?.displayName ?? faker.lorem.word(),
-        platformId: apiKey?.platformId ?? apId(),
-        hashedValue: secretHashed,
-        value: secret,
-        truncatedValue: secretTruncated,
-    }
-}
-
-
-export const createMockSigningKey = (
-    signingKey?: Partial<SigningKey>,
-): SigningKey => {
-    return {
-        id: signingKey?.id ?? apId(),
-        created: signingKey?.created ?? faker.date.recent().toISOString(),
-        updated: signingKey?.updated ?? faker.date.recent().toISOString(),
-        displayName: signingKey?.displayName ?? faker.lorem.word(),
-        platformId: signingKey?.platformId ?? apId(),
-        publicKey: signingKey?.publicKey ?? MOCK_SIGNING_KEY_PUBLIC_KEY,
-        algorithm: signingKey?.algorithm ?? KeyAlgorithm.RSA,
-    }
-}
 
 
 export const createMockTag = (tag?: Partial<Omit<TagEntitySchema, 'platform'>>): Omit<TagEntitySchema, 'platform'> => {
@@ -615,20 +554,6 @@ export const mockAndSaveBasicSetup = async (params?: MockBasicSetupParams): Prom
     })
 
     await databaseConnection().getRepository('platform').save(mockPlatform)
-    const hasPlanTable = databaseConnection().hasMetadata(PlatformPlanEntity)
-    if (hasPlanTable) {
-        const mockPlatformPlan = createMockPlatformPlan({
-            platformId: mockPlatform.id,
-            auditLogEnabled: true,
-            apiKeysEnabled: true,
-            customRolesEnabled: true,
-            teamProjectsLimit: TeamProjectsLimit.UNLIMITED,
-            includedAiCredits: 1000,
-            ...params?.plan,
-        })
-        await databaseConnection().getRepository('platform_plan').upsert(mockPlatformPlan, ['platformId'])
-    }
-
     mockOwner.platformId = mockPlatform.id
     await databaseConnection().getRepository('user').save(mockOwner)
 
@@ -644,21 +569,6 @@ export const mockAndSaveBasicSetup = async (params?: MockBasicSetupParams): Prom
         mockOwner,
         mockPlatform,
         mockProject,
-    }
-}
-
-type MockBasicSetupWithApiKey = MockBasicSetup & { mockApiKey: ApiKey & { value: string } }
-export const mockAndSaveBasicSetupWithApiKey = async (params?: MockBasicSetupParams): Promise<MockBasicSetupWithApiKey> => {
-    const basicSetup = await mockAndSaveBasicSetup(params)
-
-    const mockApiKey = createMockApiKey({
-        platformId: basicSetup.mockPlatform.id,
-    })
-    await databaseConnection().getRepository('api_key').save(mockApiKey)
-
-    return {
-        ...basicSetup,
-        mockApiKey,
     }
 }
 

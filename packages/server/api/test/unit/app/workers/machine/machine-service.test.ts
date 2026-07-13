@@ -8,10 +8,26 @@ vi.mock('../../../../../src/app/workers/machine/machine-cache', () => ({
     })),
 }))
 
+// TYRBO-PATCH: capacity invalidation publishes over redis pub/sub; a unit
+// test must not dial redis
+vi.mock('../../../../../src/app/workers/machine/worker-capacity', () => ({
+    workerCapacity: {
+        invalidate: vi.fn().mockResolvedValue(undefined),
+        get: vi.fn().mockResolvedValue({ shared: { slots: 0 }, projectGroups: new Map(), platformGroups: new Map() }),
+        setup: vi.fn().mockResolvedValue(undefined),
+    },
+    parseWorkerConcurrency: vi.fn().mockReturnValue(undefined),
+}))
+
 vi.mock('../../../../../src/app/helper/system/system', () => ({
     system: {
-        getOrThrow: vi.fn().mockReturnValue('test-value'),
+        // TYRBO-PATCH: route redis to the in-memory implementation so the
+        // machine cache never dials a real server from a unit test
+        getOrThrow: vi.fn((prop: string) => (prop === 'REDIS_TYPE' ? 'MEMORY' : 'test-value')),
         getNumberOrThrow: vi.fn().mockReturnValue(60),
+        // TYRBO-PATCH: redis settings resolution calls getNumber/getBoolean
+        getNumber: vi.fn().mockReturnValue(undefined),
+        getBoolean: vi.fn().mockReturnValue(undefined),
         get: vi.fn().mockReturnValue(undefined),
     },
 }))

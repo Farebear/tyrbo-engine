@@ -4,8 +4,6 @@ import { FastifyBaseLogger } from 'fastify'
 import semver from 'semver'
 import { ArrayContains, Equal, FindOperator, FindOptionsWhere, ILike, In } from 'typeorm'
 import { repoFactory } from '../../core/db/repo-factory'
-import { projectMemberService } from '../../ee/projects/project-members/project-member.service'
-import { containsSecretManagerReference, secretManagersService } from '../../ee/secret-managers/secret-managers.service'
 import { flowService } from '../../flows/flow/flow.service'
 import { encryptUtils } from '../../helper/encryption'
 import { buildPaginator } from '../../helper/pagination/build-paginator'
@@ -17,6 +15,7 @@ import {
     pieceMetadataService,
 } from '../../pieces/metadata/piece-metadata-service'
 import { projectRepo } from '../../project/project-service'
+import { containsSecretManagerReference, projectMemberService, secretManagersService } from '../../tyrbo/ce-defaults'
 import { userService } from '../../user/user-service'
 import { userInteractionWatcher } from '../../workers/user-interaction-watcher'
 import {

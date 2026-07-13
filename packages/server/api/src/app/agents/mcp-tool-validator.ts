@@ -49,7 +49,8 @@ function createSafeFetch(extraHeaders: Record<string, string>): typeof fetch {
     }
 }
 
-function normalizeHeaders(headers: HeadersInit | undefined): Record<string, string> {
+// TYRBO-PATCH: HeadersInit global is unavailable under the pinned @types/node
+function normalizeHeaders(headers: NonNullable<Parameters<typeof fetch>[1]>['headers']): Record<string, string> {
     if (!headers) {
         return {}
     }
@@ -63,7 +64,11 @@ function normalizeHeaders(headers: HeadersInit | undefined): Record<string, stri
     if (Array.isArray(headers)) {
         return Object.fromEntries(headers)
     }
-    return headers
+    return Object.fromEntries(
+        Object.entries(headers)
+            .filter(([, value]) => value !== undefined)
+            .map(([key, value]) => [key, Array.isArray(value) ? value.join(', ') : String(value)]),
+    )
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {

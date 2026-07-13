@@ -98,7 +98,8 @@ async function installNewPieces(cloudPieces: PieceRegistryResponse[], dbPieces: 
                 log.warn({ piece: { name: piece.name, version: piece.version }, status: response.status }, '[pieceSyncService#installNewPieces] Error reading piece metadata')
                 return
             }
-            const pieceMetadata = await response.json()
+            // TYRBO-PATCH: response.json() is `unknown` under the pinned @types/node
+            const pieceMetadata = await response.json() as PieceMetadataSchema
             const { error } = await tryCatch(() => pieceMetadataService(log).create({
                 pieceMetadata,
                 packageType: pieceMetadata.packageType,
@@ -125,7 +126,7 @@ async function listCloudPieces(): Promise<PieceRegistryResponse[]> {
     if (!response.ok) {
         throw new Error(`Failed to fetch cloud pieces: ${response.status}`)
     }
-    const pieces: PieceRegistryResponse[] = await response.json()
+    const pieces = await response.json() as PieceRegistryResponse[]
     const piecesByName = groupBy(pieces, p => p.name)
     const latest = []
     const others = []
