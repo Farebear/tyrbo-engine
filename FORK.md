@@ -20,7 +20,7 @@ Docker images + published npm packages. Master plan: `tyrbo` repo → `docs/PLAN
 | 3 | planned | Auth bridge: accept Tyrbo-minted JWTs; map `org_id → project` |
 | 4 | planned | Run-completion webhook → Tyrbo product API (credit debits + run mirror) |
 | 5 | planned | Register `@tyrbo/piece-browser` + `device-routing` queue tag for local execution (session S9) |
-| 6 | planned | Disable telemetry/phone-home |
+| 6 | done | Disable telemetry/phone-home — posthog hard-off in `helper/telemetry.utils.ts` (+ billing capture no-op), template-usage posts removed, `TELEMETRY_ENABLED` flag pinned false for the web UI |
 
 ### Patch 1 notes (EE removal)
 
