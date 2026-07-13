@@ -216,10 +216,14 @@ export async function applyProjectsAccessFilters<T extends ObjectLiteral>(
     }
 
     // TYRBO-PATCH: the project_member table was removed with the EE tree;
-    // non-privileged users see the projects they own (any type).
+    // non-privileged users see the projects they own plus org projects the
+    // auth bridge made them members of (project.metadata.tyrboMembers).
     queryBuilder.andWhere(new Brackets(qb => {
         qb.where(
             'project."ownerId" = :userId',
+            { userId },
+        ).orWhere(
+            'project."metadata" -> \'tyrboMembers\' @> to_jsonb(:userId::text)',
             { userId },
         )
     }))

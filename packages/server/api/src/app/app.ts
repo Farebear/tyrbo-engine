@@ -59,6 +59,7 @@ import { templateModule } from './template/template.module'
 import { toolSearchReindexJob } from './tool-search/tool-search-reindex.job'
 import { appEventRoutingModule } from './trigger/app-event-routing/app-event-routing.module'
 import { triggerModule } from './trigger/trigger.module'
+import { tyrboAuthBridgeModule } from './tyrbo/tyrbo-auth-bridge'
 import { tyrboProjectModule } from './tyrbo/tyrbo-project-module'
 import { platformUserModule } from './user/platform/platform-user-module'
 import { invitationModule } from './user-invitations/user-invitation.module'
@@ -248,6 +249,7 @@ export const setupApp = async (app: FastifyInstance): Promise<FastifyInstance> =
         throw new Error(`Unsupported AP_EDITION '${edition}': tyrbo-engine only supports the community edition`)
     }
     await app.register(tyrboProjectModule)
+    await app.register(tyrboAuthBridgeModule)
     await app.register(communityPiecesModule)
 
     const isCanaryApp = system.getBoolean(AppSystemProp.IS_CANARY_APP) ?? false
