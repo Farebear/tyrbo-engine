@@ -217,7 +217,7 @@ async function waitForRuns(flowId, count, { statuses = ['SUCCEEDED'], timeoutMs 
 }
 
 async function fireWebhook(flowId, body, { sync = false } = {}) {
-    const res = await fetch(`http://localhost:8080/api/v1/webhooks/${flowId}${sync ? '/sync' : ''}`, {
+    const res = await fetch(`${BASE_URL}/webhooks/${flowId}${sync ? '/sync' : ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
