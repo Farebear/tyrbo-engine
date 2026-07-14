@@ -10,21 +10,21 @@ Apps (org `tyrbo`, region `iad`):
 |---|---|---|
 | `tyrbo-engine-api-staging` | `fly.api.staging.toml` | `ghcr.io/farebear/tyrbo-engine-api` |
 | `tyrbo-engine-worker-staging` | `fly.worker.staging.toml` | `ghcr.io/farebear/tyrbo-engine-worker` |
-| `tyrbo-engine-pg-staging` | flyctl-managed Postgres (needs pgvector — the TyrboBaseline migration creates the extension) | postgres-flex |
-| Upstash Redis `tyrbo-engine-redis-staging` | `fly redis create` (no eviction — BullMQ requirement) | — |
+| `tyrbo-engine-db-staging` | `fly.db.staging.toml` — plain `pgvector/pgvector:pg16` + volume. **Not `fly postgres create`**: the unmanaged postgres-flex images (pg15–pg18) do not ship pgvector, and the TyrboBaseline migration needs it | `pgvector/pgvector:pg16` |
+| Upstash Redis `tyrbo-engine-redis-staging` | `fly redis create` (no eviction — BullMQ requirement). **Append `?family=6` to the URL** — the `fly-*.upstash.io` host only resolves as IPv6 on Fly's private network and ioredis defaults to IPv4 lookups | — |
 
 ## One-time provisioning
 
 ```sh
-fly postgres create --name tyrbo-engine-pg-staging --org tyrbo --region iad \
-  --initial-cluster-size 1 --vm-size shared-cpu-1x --volume-size 10
-# capture the printed credentials, then create the engine DB + pgvector:
-fly postgres connect -a tyrbo-engine-pg-staging \
-  -c "CREATE DATABASE tyrbo;" \
-  -c "\c tyrbo" -c "CREATE EXTENSION IF NOT EXISTS vector;"
+fly apps create tyrbo-engine-db-staging --org tyrbo
+fly volumes create pgdata -a tyrbo-engine-db-staging --region iad --size 10 --yes
+fly secrets set -a tyrbo-engine-db-staging POSTGRES_PASSWORD=...
+fly deploy -c tyrbo-deploy/fly.db.staging.toml --ha=false
+# the TyrboBaseline migration creates the vector extension itself on API boot
 
-fly redis create --name tyrbo-engine-redis-staging --org tyrbo --region iad --no-eviction
-# capture the printed redis URL
+fly redis create --name tyrbo-engine-redis-staging --org tyrbo --region iad \
+  --no-replicas --disable-eviction --enable-prodpack=false --plan "Pay-as-you-go"
+# capture the printed redis URL; use it as AP_REDIS_URL with ?family=6 appended
 
 fly apps create tyrbo-engine-api-staging --org tyrbo
 fly apps create tyrbo-engine-worker-staging --org tyrbo
@@ -58,9 +58,9 @@ payload `{ id: 'staging-worker', type: 'WORKER', iss: 'activepieces', iat, exp }
 ```sh
 fly secrets set -a tyrbo-engine-api-staging \
   AP_ENCRYPTION_KEY=... AP_JWT_SECRET=... \
-  AP_POSTGRES_HOST=tyrbo-engine-pg-staging.flycast AP_POSTGRES_PORT=5432 \
-  AP_POSTGRES_DATABASE=tyrbo AP_POSTGRES_USERNAME=postgres AP_POSTGRES_PASSWORD=... \
-  AP_REDIS_URL=redis://... \
+  AP_POSTGRES_HOST=tyrbo-engine-db-staging.internal AP_POSTGRES_PORT=5432 \
+  AP_POSTGRES_DATABASE=tyrbo AP_POSTGRES_USERNAME=tyrbo AP_POSTGRES_PASSWORD=... \
+  AP_REDIS_URL='redis://...?family=6' \
   AP_TYRBO_JWT_PUBLIC_KEY="$(cat public.pem)" AP_TYRBO_WEBHOOK_SECRET=...
 
 fly secrets set -a tyrbo-engine-worker-staging AP_WORKER_TOKEN=...

@@ -1,0 +1,36 @@
+# TYRBO-PATCH: staging engine Postgres. Plain single-node pgvector image —
+# Fly's unmanaged postgres-flex images do not ship the pgvector extension the
+# TyrboBaseline migration needs (verified against fly-apps/postgres-flex
+# pg16/pg18 Dockerfiles), so we run the same image the dev compose uses.
+# Internal-only: reachable as tyrbo-engine-db-staging.internal:5432.
+#
+#   fly volumes create pgdata -a tyrbo-engine-db-staging --region iad --size 10
+#   fly secrets set -a tyrbo-engine-db-staging POSTGRES_PASSWORD=...
+#   fly deploy -c tyrbo-deploy/fly.db.staging.toml
+
+app = "tyrbo-engine-db-staging"
+primary_region = "iad"
+
+[build]
+image = "pgvector/pgvector:pg16"
+
+[env]
+POSTGRES_DB = "tyrbo"
+POSTGRES_USER = "tyrbo"
+# fly volumes mount with lost+found; initdb needs an empty dir one level down
+PGDATA = "/var/lib/postgresql/data/pgdata"
+
+[[mounts]]
+source = "pgdata"
+destination = "/var/lib/postgresql/data"
+
+[checks.pg_ready]
+type = "tcp"
+port = 5432
+interval = "15s"
+timeout = "5s"
+grace_period = "30s"
+
+[[vm]]
+size = "shared-cpu-1x"
+memory = "512mb"
