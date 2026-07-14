@@ -11,8 +11,9 @@ import customHtmlPlugin from './vite-plugins/html-plugin';
 export default defineConfig(({ command, mode }) => {
   const isDev = command === 'serve' || mode === 'development';
 
-  const AP_TITLE = 'Activepieces';
-  const AP_FAVICON = 'https://activepieces.com/favicon.ico';
+  // TYRBO-PATCH: tyrbo branding (assets in public/tyrbo)
+  const AP_TITLE = 'Tyrbo';
+  const AP_FAVICON = '/tyrbo/fav-icon.png';
 
   return {
     root: __dirname,

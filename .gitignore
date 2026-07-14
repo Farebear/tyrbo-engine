@@ -101,3 +101,7 @@ deploy/terraform/**/*.tfstate.backup
 deploy/terraform/**/.terraform.lock.hcl
 deploy/terraform/**/terraform.tfvars
 deploy/terraform/**/terraform-*.tfvars
+
+# TYRBO-PATCH: golden-flow suite local artifacts
+golden-flows/.env.golden
+golden-flows/.golden-private-key.pem

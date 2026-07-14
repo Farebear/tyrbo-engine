@@ -1,0 +1,65 @@
+# TYRBO-PATCH: golden-flow smoke suite — gates every PR (including upstream
+# merges) by running ~10 golden flows against the real engine images.
+name: Tyrbo Golden Flows
+
+on:
+  pull_request:
+  push:
+    branches:
+      - tyrbo
+
+permissions:
+  contents: read
+
+jobs:
+  golden-flows:
+    name: Golden flows (compose)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build api image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          load: true
+          tags: tyrbo-engine-api:golden
+          cache-from: type=gha,scope=tyrbo-engine-api
+          cache-to: type=gha,mode=max,scope=tyrbo-engine-api
+
+      - name: Build worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.worker
+          load: true
+          tags: tyrbo-engine-worker:golden
+          cache-from: type=gha,scope=tyrbo-engine-worker
+          cache-to: type=gha,mode=max,scope=tyrbo-engine-worker
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Prepare compose environment
+        run: node golden-flows/run.mjs --prepare
+
+      - name: Bring up engine
+        run: docker compose -f golden-flows/docker-compose.golden.yml --env-file golden-flows/.env.golden up -d
+
+      - name: Run golden flows
+        run: node golden-flows/run.mjs
+
+      - name: Engine logs on failure
+        if: failure()
+        run: |
+          docker compose -f golden-flows/docker-compose.golden.yml --env-file golden-flows/.env.golden logs --tail 300 api
+          docker compose -f golden-flows/docker-compose.golden.yml --env-file golden-flows/.env.golden logs --tail 300 worker
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f golden-flows/docker-compose.golden.yml --env-file golden-flows/.env.golden down -v

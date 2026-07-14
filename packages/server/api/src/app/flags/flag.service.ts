@@ -205,7 +205,8 @@ export const flagService = (log: FastifyBaseLogger) => ({
             },
             {
                 id: ApFlagId.TELEMETRY_ENABLED,
-                value: system.getBoolean(AppSystemProp.TELEMETRY_ENABLED) ?? true,
+                // TYRBO-PATCH: keeps the web UI's posthog permanently off
+                value: false,
                 created,
                 updated,
             },

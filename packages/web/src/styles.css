@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import './styles/globals.css';
+/* TYRBO-PATCH: brand layer; unlayered, so it overrides the @layer base
+   token blocks below regardless of source order */
+@import './styles/tyrbo-theme.css';
 @custom-variant dark (&:is(.dark *));
 
 /* Sentient Variable Font */

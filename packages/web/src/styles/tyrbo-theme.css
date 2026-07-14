@@ -1,0 +1,81 @@
+/* TYRBO-PATCH: the one brand/theme layer for the builder UI.
+ *
+ * Tyrbo tokens (see tyrbo repo → packages/ui/tokens.css):
+ *   background #06070A, accents #facc15 / #e8873a / #d06a9c / #8b3fb8 / #5b21b6,
+ *   primary gradient 135deg yellow → orange → pink → purple.
+ *
+ * Overrides the custom properties defined in styles.css: those live in
+ * @layer base while this sheet is unlayered, so these declarations win
+ * regardless of source order. Two value formats, matching the @theme
+ * mappings there:
+ * surface tokens are raw colors (consumed via var(--x)), primary/chart tokens
+ * are HSL triplets (consumed via hsl(var(--x))). No other stylesheet carries
+ * brand colors.
+ */
+
+:root {
+  /* brand accents, usable from any component */
+  --tyrbo-yellow: #facc15;
+  --tyrbo-orange: #e8873a;
+  --tyrbo-pink: #d06a9c;
+  --tyrbo-purple: #8b3fb8;
+  --tyrbo-purple-deep: #5b21b6;
+  --gradient-primary: linear-gradient(
+    135deg,
+    var(--tyrbo-yellow) 0%,
+    var(--tyrbo-orange) 33%,
+    var(--tyrbo-pink) 66%,
+    var(--tyrbo-purple) 100%
+  );
+
+  /* light mode keeps neutral surfaces but adopts the brand primary */
+  --primary-100: 278 49% 85%;
+  --primary: 278 49% 48%;
+  --primary-300: 278 49% 25%;
+  --primary-foreground: 280 20% 98%;
+}
+
+.dark {
+  /* surfaces — #06070A base with slightly lifted panels (raw colors) */
+  --background: #06070a;
+  --foreground: #fafafa;
+  --popover: #0d0f16;
+  --muted: #12141d;
+  --muted-foreground: #9aa0b4;
+
+  --secondary: #12141d;
+  --secondary-foreground: #fafafa;
+
+  --accent: #191c28;
+  --accent-foreground: #fafafa;
+
+  /* brand primary — tyrbo purple (HSL triplets) */
+  --primary-100: 278 49% 30%;
+  --primary: 278 55% 58%;
+  --primary-300: 278 60% 85%;
+  --primary-foreground: 280 20% 98%;
+
+  --border: hsla(240, 30%, 90%, 0.08);
+  --input: hsla(240, 30%, 90%, 0.08);
+  --ring: #5c637d;
+
+  --add-button-shadow: 0 0 0 6px hsl(var(--primary-100) / 0.4);
+
+  /* charts follow the brand accent ramp (HSL triplets) */
+  --chart-1: 278 55% 58%;
+  --chart-2: 330 52% 62%;
+  --chart-3: 27 78% 57%;
+  --chart-4: 48 96% 53%;
+  --chart-5: 263 69% 42%;
+
+  --sidebar-background: #090b10;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: 278 55% 65%;
+  --sidebar-primary-foreground: 280 20% 98%;
+  --sidebar-accent: #12141d;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: hsla(240, 30%, 90%, 0.08);
+  --sidebar-ring: #494f66;
+  --builder-background: #06070a;
+  --builder-background-pattern: hsla(228, 15%, 40%, 1);
+}
