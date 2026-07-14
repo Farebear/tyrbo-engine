@@ -1,0 +1,51 @@
+# TYRBO-PATCH: Fly staging config for the engine API (M1 exit: "fork on Fly staging").
+#
+# Deploy (pin a SHA tag from the tyrbo-release workflow, not the moving branch tag):
+#   fly deploy -c tyrbo-deploy/fly.api.staging.toml --image ghcr.io/farebear/tyrbo-engine-api:<sha>
+#
+# Secrets (fly secrets set -a tyrbo-engine-api-staging ...) — see README.md:
+#   AP_ENCRYPTION_KEY  AP_JWT_SECRET
+#   AP_POSTGRES_HOST  AP_POSTGRES_PORT  AP_POSTGRES_DATABASE  AP_POSTGRES_USERNAME  AP_POSTGRES_PASSWORD
+#   AP_REDIS_URL
+#   AP_TYRBO_JWT_PUBLIC_KEY  AP_TYRBO_WEBHOOK_SECRET
+#   (AP_TYRBO_API_URL stays unset until the product API ships its receiver in S5/M2b;
+#    add AP_SSRF_ALLOW_LIST alongside it if the URL is private)
+
+app = "tyrbo-engine-api-staging"
+primary_region = "iad"
+
+[build]
+image = "ghcr.io/farebear/tyrbo-engine-api:tyrbo"
+
+[env]
+AP_CONTAINER_TYPE = "APP"
+AP_ENVIRONMENT = "prod"
+AP_EDITION = "ce"
+# must be resolvable by the worker app too — public URL, not .internal
+AP_FRONTEND_URL = "https://tyrbo-engine-api-staging.fly.dev"
+AP_DB_TYPE = "POSTGRES"
+AP_QUEUE_MODE = "REDIS"
+AP_EXECUTION_MODE = "UNSANDBOXED"
+AP_TELEMETRY_ENABLED = "false"
+AP_TYRBO_JWT_ISSUER = "tyrbo"
+AP_LOG_LEVEL = "info"
+
+[http_service]
+internal_port = 80
+force_https = true
+auto_stop_machines = "stop"
+auto_start_machines = true
+# the worker long-polls the API, which keeps it awake; 0 still lets Fly
+# park it if the worker is scaled down
+min_machines_running = 0
+
+[[http_service.checks]]
+interval = "15s"
+timeout = "5s"
+grace_period = "45s"
+method = "GET"
+path = "/api/v1/health"
+
+[[vm]]
+size = "shared-cpu-1x"
+memory = "1gb"
