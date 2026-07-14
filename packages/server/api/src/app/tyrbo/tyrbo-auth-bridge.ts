@@ -53,7 +53,7 @@ const tyrboAuthBridgeController: FastifyPluginAsyncZod = async (app) => {
     })
 }
 
-async function verifyTyrboToken(token: string): Promise<TyrboTokenClaims> {
+export async function verifyTyrboToken(token: string): Promise<TyrboTokenClaims> {
     const publicKey = system.get(AppSystemProp.TYRBO_JWT_PUBLIC_KEY)?.replace(/\\n/g, '\n')
     if (isNil(publicKey) || publicKey.length === 0) {
         throw new ActivepiecesError({
@@ -64,13 +64,29 @@ async function verifyTyrboToken(token: string): Promise<TyrboTokenClaims> {
         })
     }
     const issuer = system.get(AppSystemProp.TYRBO_JWT_ISSUER) ?? 'tyrbo'
-    const decoded = await jwtUtils.decodeAndVerify<Record<string, unknown>>({
-        jwt: token,
-        key: publicKey,
-        algorithm: JwtSignAlgorithm.RS256,
-        issuer,
-        audience: TYRBO_TOKEN_AUDIENCE,
-    })
+    let decoded: Record<string, unknown>
+    try {
+        decoded = await jwtUtils.decodeAndVerify<Record<string, unknown>>({
+            jwt: token,
+            key: publicKey,
+            algorithm: JwtSignAlgorithm.RS256,
+            issuer,
+            audience: TYRBO_TOKEN_AUDIENCE,
+        })
+    }
+    catch (error) {
+        // jsonwebtoken rejects with its own error types (malformed, bad
+        // signature, expired, wrong iss/aud); surface them as 401, not 500.
+        if (error instanceof ActivepiecesError) {
+            throw error
+        }
+        throw new ActivepiecesError({
+            code: ErrorCode.AUTHENTICATION,
+            params: {
+                message: `tyrbo token rejected: ${error instanceof Error ? error.message : 'invalid token'}`,
+            },
+        })
+    }
     const parsed = TyrboTokenClaims.safeParse(decoded)
     if (!parsed.success) {
         throw new ActivepiecesError({
