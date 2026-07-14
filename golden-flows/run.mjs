@@ -304,6 +304,30 @@ async function main() {
     const memberAuth = await api('POST', '/tyrbo/auth/exchange', { token: memberJwt })
     assert(memberAuth.projectId === projectId, 'org member lands on the org project')
 
+    // invalid tokens must come back 401 Unauthorized, never 500
+    await api('POST', '/tyrbo/auth/exchange', { token: 'garbage' }, { expectStatus: 401 })
+    const expiredJwt = signJwt({
+        alg: 'RS256',
+        key: privateKey,
+        payload: {
+            iss: 'tyrbo', aud: 'tyrbo-engine', sub: 'user_golden_1',
+            email: 'golden@tyrbo.ai', org_id: 'org_golden_1',
+            iat: now - 3600, exp: now - 60,
+        },
+    })
+    await api('POST', '/tyrbo/auth/exchange', { token: expiredJwt }, { expectStatus: 401 })
+    const wrongIssuerJwt = signJwt({
+        alg: 'RS256',
+        key: privateKey,
+        payload: {
+            iss: 'not-tyrbo', aud: 'tyrbo-engine', sub: 'user_golden_1',
+            email: 'golden@tyrbo.ai', org_id: 'org_golden_1',
+            iat: now, exp: now + 300,
+        },
+    })
+    await api('POST', '/tyrbo/auth/exchange', { token: wrongIssuerJwt }, { expectStatus: 401 })
+    console.log('malformed, expired, and wrong-issuer tokens all rejected with 401')
+
     // wait for the webhook piece to be synced from the registry
     console.log('waiting for pieces sync ...')
     await waitFor('webhook piece', async () => {
