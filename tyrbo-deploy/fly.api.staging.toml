@@ -28,7 +28,9 @@ AP_QUEUE_MODE = "REDIS"
 AP_EXECUTION_MODE = "UNSANDBOXED"
 AP_TELEMETRY_ENABLED = "false"
 AP_TYRBO_JWT_ISSUER = "tyrbo"
-AP_LOG_LEVEL = "info"
+# warn, not info: the queue dispatcher logs several lines/sec at info, which
+# is measurable CPU at shared-cpu-1x baseline (1/16 vCPU) and drains burst credits
+AP_LOG_LEVEL = "warn"
 # @tyrbo/piece-browser (M6) is file-loaded from the image — never on the AP
 # cloud registry; this also merges it into /v1/pieces metadata responses.
 AP_DEV_PIECES = "browser"
@@ -53,6 +55,14 @@ grace_period = "45s"
 method = "GET"
 path = "/api/v1/health"
 
+# Sizing history, measured 2026-07-14 — do not downsize without re-measuring:
+# - 512MB OOM-ish: piece sync stalls the event loop into health-check
+#   timeouts, the proxy 503s everything and auto-stops the machine.
+# - shared-cpu-1x starves: burst credits drain in ~10-20 min of engine load,
+#   top shows ~80% steal, health checks fail, proxy pulls the machine.
+#   2x doubles the baseline (12.5%) and credit accrual for ~$2/mo more.
 [[vm]]
-size = "shared-cpu-1x"
+size = "shared-cpu-2x"
 memory = "1gb"
+
+swap_size_mb = 512

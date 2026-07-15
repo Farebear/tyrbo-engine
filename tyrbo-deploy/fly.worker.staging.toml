@@ -21,8 +21,10 @@ image = "ghcr.io/farebear/tyrbo-engine-worker:tyrbo"
 AP_CONTAINER_TYPE = "WORKER"
 AP_FRONTEND_URL = "https://tyrbo-engine-api-staging.fly.dev"
 AP_EXECUTION_MODE = "UNSANDBOXED"
-AP_WORKER_CONCURRENCY = "10"
-AP_LOG_LEVEL = "info"
+# 4, not 10: staging never needs 10-wide; fewer poll loops = less steady CPU
+# on both machines (shared-cpu burst credits are the scarce resource here)
+AP_WORKER_CONCURRENCY = "4"
+AP_LOG_LEVEL = "warn"
 # @tyrbo/piece-browser (M6) executes in this process from the image
 # filesystem (piece-installer skips dev pieces). Its BullMQ producer reads
 # AP_REDIS_URL — set it as a secret on this app alongside AP_WORKER_TOKEN.
@@ -31,6 +33,10 @@ AP_LOG_LEVEL = "info"
 AP_DEV_PIECES = "browser"
 TYRBO_BROWSER_POOL_APP = "tyrbo-browser-worker-staging"
 
+# 512MB was tried and is NOT enough: engine sandbox processes die with ping
+# timeouts under GC pressure and golden-flow runs time out. 1GB is the floor.
 [[vm]]
 size = "shared-cpu-1x"
 memory = "1gb"
+
+swap_size_mb = 512
