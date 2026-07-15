@@ -9,9 +9,15 @@
 /** Cloud fleet queue (BullMQ on the engine Redis). */
 export const BROWSER_RUNS_QUEUE = 'browser-runs';
 
-/** Per-device queue for `execution: local` steps, consumed by the desktop app (M7). */
+/**
+ * Per-device queue for `execution: local` steps, bridged to the desktop app
+ * by tyrbo's device-relay (M7). Dot separator — BullMQ rejects `:` in queue
+ * names (queue-base validation), so the PLAN's original `device:{deviceId}`
+ * could never be created; caught by the M7 e2e. Mirrors
+ * Farebear/tyrbo packages/run-contract.
+ */
 export function deviceQueueName(deviceId: string): string {
-  return `device:${deviceId}`;
+  return `device.${deviceId}`;
 }
 
 export const JOB_CONTRACT_VERSION = 1;
