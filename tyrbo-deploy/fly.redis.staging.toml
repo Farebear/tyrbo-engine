@@ -1,0 +1,34 @@
+# TYRBO-PATCH: Fly staging config for the engine Redis (re-provisioned 2026-07).
+#
+# Self-hosted redis:7 on a Fly machine — flat cost (~$2/mo + $0.15/GB volume).
+# NEVER use a per-request-billed Redis (Upstash pay-as-you-go) here: BullMQ's
+# idle delayed-job polling alone produced a ~$360 overnight bill on 2026-07-14.
+#
+# BullMQ requirements: maxmemory-policy noeviction; appendonly for durability.
+# maxmemory stays well under the 256MB machine so an AOF-rewrite fork can't
+# OOM the VM.
+#
+# One-time: fly volumes create redis_data -a tyrbo-engine-redis-staging -r iad -s 1
+# Secrets:  REDIS_PASSWORD (embedded in the api app's AP_REDIS_URL)
+# Deploy:   fly deploy -c tyrbo-deploy/fly.redis.staging.toml --ha=false
+#
+# Reachable only over 6PN at tyrbo-engine-redis-staging.internal:6379.
+# Fly private networking is IPv6-only — ioredis clients need ?family=6 on the URL:
+#   redis://default:<REDIS_PASSWORD>@tyrbo-engine-redis-staging.internal:6379?family=6
+
+app = "tyrbo-engine-redis-staging"
+primary_region = "iad"
+
+[build]
+image = "redis:7"
+
+[processes]
+app = "sh -c 'exec redis-server --dir /data --appendonly yes --maxmemory-policy noeviction --maxmemory 100mb --requirepass \"$REDIS_PASSWORD\"'"
+
+[mounts]
+source = "redis_data"
+destination = "/data"
+
+[[vm]]
+size = "shared-cpu-1x"
+memory = "256mb"

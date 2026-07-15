@@ -1,0 +1,36 @@
+# TYRBO-PATCH: Fly staging config for the engine Postgres (M1, re-provisioned 2026-07).
+#
+# Plain pgvector image app, NOT `fly postgres create`: Fly's postgres-flex
+# images do not ship pgvector, and the TyrboBaseline migration needs it.
+#
+# One-time: fly volumes create pgdata -a tyrbo-engine-db-staging -r iad -s 3
+# Secrets:  POSTGRES_PASSWORD (also lives in .env.staging as AP_POSTGRES_PASSWORD)
+# Deploy:   fly deploy -c tyrbo-deploy/fly.db.staging.toml --ha=false
+#
+# No [http_service]/[[services]]: reachable only over 6PN private networking
+# at tyrbo-engine-db-staging.internal:5432. No services also means the machine
+# never auto-stops — the DB runs 24/7 (flat ~$2/mo at 256MB).
+
+app = "tyrbo-engine-db-staging"
+primary_region = "iad"
+
+[build]
+image = "pgvector/pgvector:pg16"
+
+[env]
+POSTGRES_USER = "tyrbo"
+POSTGRES_DB = "tyrbo"
+# volume root holds lost+found; initdb needs an empty dir
+PGDATA = "/var/lib/postgresql/data/pgdata"
+
+[mounts]
+source = "pgdata"
+destination = "/var/lib/postgresql/data"
+
+# 256MB was tried: the kernel OOM-kills individual postgres backends under
+# flow-publish bursts ("Connection terminated unexpectedly" 500s at the API).
+[[vm]]
+size = "shared-cpu-1x"
+memory = "512mb"
+
+swap_size_mb = 512
