@@ -353,6 +353,20 @@ async function main() {
         assert(detail.actions && detail.actions['run'], 'piece metadata exposes the "run" action')
     })
 
+    // @tyrbo/piece-ai (M8.5) is file-loaded the same way (AP_DEV_PIECES=
+    // browser,ai). Registry presence only — execution needs Tyrbo-managed
+    // provider keys; the stubbed-provider e2e lives in Farebear/tyrbo
+    // (apps/browser-worker/e2e).
+    await test('piece registry lists @tyrbo/piece-ai', async () => {
+        const pieces = await api('GET', '/pieces?searchQuery=tyrbo')
+        const found = (Array.isArray(pieces) ? pieces : pieces.data ?? []).find((piece) => piece.name === '@tyrbo/piece-ai')
+        assert(found, 'GET /pieces includes @tyrbo/piece-ai (AP_DEV_PIECES file piece)')
+        const detail = await api('GET', `/pieces/${encodeURIComponent('@tyrbo/piece-ai')}`)
+        for (const action of ['extractStructuredData', 'classify', 'summarize', 'generate']) {
+            assert(detail.actions && detail.actions[action], `piece metadata exposes the "${action}" action`)
+        }
+    })
+
     // -- golden flows --------------------------------------------------------
 
     let echoFlow = null

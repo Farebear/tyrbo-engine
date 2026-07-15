@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "case": "openai.generate",
+  "recordedAt": "2026-07-15T21:54:45.872Z",
+  "calls": [
+    {
+      "url": "https://api.openai.com/v1/chat/completions",
+      "method": "POST",
+      "body": {
+        "model": "gpt-5-mini",
+        "max_completion_tokens": 256,
+        "reasoning_effort": "minimal",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Follow the instruction. Reply with the requested text only — no preamble."
+          },
+          {
+            "role": "user",
+            "content": "Write a one-sentence friendly reminder that invoice #2041 for $129.60 is due July 31."
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "id": "chatcmpl-E21quTdx06XqfV2a3wqoahQUrbKDb",
+          "object": "chat.completion",
+          "created": 1784152484,
+          "model": "gpt-5-mini-2025-08-07",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "Friendly reminder: Invoice #2041 for $129.60 is due on July 31 — please let us know if you need any assistance.",
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 48,
+            "completion_tokens": 38,
+            "total_tokens": 86,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    }
+  ]
+}

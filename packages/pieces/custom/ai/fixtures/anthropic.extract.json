@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "case": "anthropic.extract",
+  "recordedAt": "2026-07-15T21:54:41.494Z",
+  "calls": [
+    {
+      "url": "https://api.anthropic.com/v1/messages",
+      "method": "POST",
+      "body": {
+        "model": "claude-haiku-4-5",
+        "max_tokens": 512,
+        "system": "Extract structured data from the input. Fill every schema field from the input text; use null when the information is not present. Never invent values.",
+        "tools": [
+          {
+            "name": "extraction",
+            "description": "Record the result. Always call this tool.",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "vendor": {
+                  "description": "the vendor / issuing company name"
+                },
+                "invoiceNumber": {
+                  "description": "the invoice number"
+                },
+                "total": {
+                  "description": "the total amount due, as a number without currency symbol"
+                },
+                "dueDate": {
+                  "description": "the due date in YYYY-MM-DD"
+                }
+              },
+              "required": [
+                "vendor",
+                "invoiceNumber",
+                "total",
+                "dueDate"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "extraction"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "INVOICE #2041 — Northwind Traders\nDate: 2026-07-01\nItem: 3x Widget Pro @ $40.00\nSubtotal: $120.00, Tax: $9.60\nTotal due: $129.60 by 2026-07-31"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "model": "claude-haiku-4-5-20251001",
+          "id": "msg_011Cd4b3MWVShAc5jrTnAcDB",
+          "type": "message",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "toolu_01JfADZaxT9DBpjW5tEzAXQ3",
+              "name": "extraction",
+              "input": {
+                "vendor": "Northwind Traders",
+                "invoiceNumber": 2041,
+                "total": 129.6,
+                "dueDate": "2026-07-31"
+              },
+              "caller": {
+                "type": "direct"
+              }
+            }
+          ],
+          "stop_reason": "tool_use",
+          "stop_sequence": null,
+          "stop_details": null,
+          "usage": {
+            "input_tokens": 832,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 100,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      }
+    }
+  ]
+}
