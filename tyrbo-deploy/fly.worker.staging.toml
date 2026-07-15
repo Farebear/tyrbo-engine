@@ -23,6 +23,13 @@ AP_FRONTEND_URL = "https://tyrbo-engine-api-staging.fly.dev"
 AP_EXECUTION_MODE = "UNSANDBOXED"
 AP_WORKER_CONCURRENCY = "10"
 AP_LOG_LEVEL = "info"
+# @tyrbo/piece-browser (M6) executes in this process from the image
+# filesystem (piece-installer skips dev pieces). Its BullMQ producer reads
+# AP_REDIS_URL — set it as a secret on this app alongside AP_WORKER_TOKEN.
+# Wake config for the scale-to-zero browser pool: TYRBO_FLY_API_TOKEN is a
+# secret; unset disables wake calls (Farebear/tyrbo docs/SECRETS.md).
+AP_DEV_PIECES = "browser"
+TYRBO_BROWSER_POOL_APP = "tyrbo-browser-worker-staging"
 
 [[vm]]
 size = "shared-cpu-1x"
