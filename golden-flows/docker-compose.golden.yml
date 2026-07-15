@@ -39,6 +39,12 @@ services:
       # both Docker Desktop (192.168.65.x) and linux bridge (172.16/12)
       AP_SSRF_ALLOW_LIST: 192.168.65.0/24,172.16.0.0/12
       AP_LOG_LEVEL: info
+      # @tyrbo/piece-browser (M6): file-loaded from the image; the golden
+      # suite asserts it appears in the piece registry
+      AP_DEV_PIECES: browser
+      # the engine child gets a whitelisted env; the piece (running inside
+      # it) needs the queue Redis + pool-wake config propagated
+      AP_SANDBOX_PROPAGATED_ENV_VARS: AP_REDIS_URL,AP_REDIS_HOST,AP_REDIS_PORT,AP_REDIS_USER,AP_REDIS_PASSWORD,AP_REDIS_DB,AP_REDIS_USE_SSL,TYRBO_BROWSER_POOL_APP,TYRBO_FLY_API_TOKEN,TYRBO_BROWSER_WARM_SPARES,TYRBO_BROWSER_RUN_TIMEOUT_MS,TYRBO_BROWSER_QUEUE_WAIT_MS
     healthcheck:
       test: ['CMD-SHELL', 'curl -fsS http://localhost:80/api/v1/flags > /dev/null']
       interval: 5s
@@ -57,6 +63,11 @@ services:
       AP_EXECUTION_MODE: UNSANDBOXED
       AP_WORKER_CONCURRENCY: '10'
       AP_LOG_LEVEL: info
+      # @tyrbo/piece-browser executes in this container; its BullMQ producer
+      # needs the queue Redis
+      AP_DEV_PIECES: browser
+      AP_REDIS_HOST: redis
+      AP_REDIS_PORT: '6379'
 
   postgres:
     image: pgvector/pgvector:0.8.0-pg14

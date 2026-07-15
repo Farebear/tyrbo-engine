@@ -1280,6 +1280,7 @@
         "packages/pieces/community/stable-diffusion-webui/src/index.ts"
       ],
       "@activepieces/piece-store": ["packages/pieces/core/store/src/index.ts"],
+      "@tyrbo/piece-browser": ["packages/pieces/custom/browser/src/index.ts"],
       "@activepieces/piece-straico": [
         "packages/pieces/community/straico/src/index.ts"
       ],

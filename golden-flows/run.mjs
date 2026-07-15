@@ -340,6 +340,19 @@ async function main() {
     }, { timeoutMs: 300_000, intervalMs: 3000 })
     console.log(`webhook piece available (${webhookPieceVersion})`)
 
+    // @tyrbo/piece-browser is file-loaded (AP_DEV_PIECES=browser in the golden
+    // compose), so it must appear in metadata immediately — this catches image
+    // trim/registration regressions on upstream merges. Full browser.run
+    // execution is exercised in Farebear/tyrbo (needs the browser-worker
+    // fleet, which is not part of this compose).
+    await test('piece registry lists @tyrbo/piece-browser', async () => {
+        const pieces = await api('GET', '/pieces?searchQuery=browser')
+        const found = (Array.isArray(pieces) ? pieces : pieces.data ?? []).find((piece) => piece.name === '@tyrbo/piece-browser')
+        assert(found, 'GET /pieces includes @tyrbo/piece-browser (AP_DEV_PIECES file piece)')
+        const detail = await api('GET', `/pieces/${encodeURIComponent('@tyrbo/piece-browser')}`)
+        assert(detail.actions && detail.actions['run'], 'piece metadata exposes the "run" action')
+    })
+
     // -- golden flows --------------------------------------------------------
 
     let echoFlow = null

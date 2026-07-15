@@ -31,6 +31,13 @@ AP_TYRBO_JWT_ISSUER = "tyrbo"
 # warn, not info: the queue dispatcher logs several lines/sec at info, which
 # is measurable CPU at shared-cpu-1x baseline (1/16 vCPU) and drains burst credits
 AP_LOG_LEVEL = "warn"
+# @tyrbo/piece-browser (M6) is file-loaded from the image — never on the AP
+# cloud registry; this also merges it into /v1/pieces metadata responses.
+AP_DEV_PIECES = "browser"
+# The engine child (where piece code runs) gets a whitelisted env; the piece
+# needs the queue Redis + pool-wake config propagated from the WORKER app's
+# env/secrets (values are read worker-side; this list is configured api-side).
+AP_SANDBOX_PROPAGATED_ENV_VARS = "AP_REDIS_URL,AP_REDIS_HOST,AP_REDIS_PORT,AP_REDIS_USER,AP_REDIS_PASSWORD,AP_REDIS_DB,AP_REDIS_USE_SSL,TYRBO_BROWSER_POOL_APP,TYRBO_FLY_API_TOKEN,TYRBO_BROWSER_WARM_SPARES,TYRBO_BROWSER_RUN_TIMEOUT_MS,TYRBO_BROWSER_QUEUE_WAIT_MS"
 
 [http_service]
 internal_port = 80

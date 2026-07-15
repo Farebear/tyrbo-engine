@@ -1,0 +1,18 @@
+{
+  "name": "@tyrbo/piece-browser",
+  "version": "0.1.0",
+  "description": "Tyrbo browser automation: runs compiled browser sub-programs on the cloud fleet or a linked device",
+  "main": "./dist/src/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json --noEmit && esbuild src/index.ts --bundle --platform=node --format=cjs --target=node20 --keep-names --tsconfig=../../../../tsconfig.base.json --outfile=dist/src/index.js --log-level=warning && cp package.json dist/",
+    "lint": "eslint 'src/**/*.ts'"
+  },
+  "dependencies": {
+    "@activepieces/pieces-framework": "workspace:*",
+    "bullmq": "5.61.0",
+    "ioredis": "5.4.1"
+  },
+  "devDependencies": {
+    "tslib": "2.6.2"
+  }
+}
