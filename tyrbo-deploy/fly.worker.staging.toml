@@ -20,7 +20,7 @@ app = "tyrbo-engine-worker-staging"
 primary_region = "iad"
 
 [build]
-image = "ghcr.io/farebear/tyrbo-engine-worker:9a6a7f4fe7115aa4f463287b0ba55b55fb4b66c1"
+image = "ghcr.io/farebear/tyrbo-engine-worker:f460c4cf05782618b6900e95bc836b54e6570a6b"
 
 [env]
 AP_CONTAINER_TYPE = "WORKER"
