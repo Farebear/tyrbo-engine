@@ -303,6 +303,163 @@ describe('classify guardrails', () => {
   });
 });
 
+describe('fileUrl document intake', () => {
+  const SAMPLE_PDF = readFileSync(join(__dirname, '..', '..', 'fixtures', 'sample.pdf'));
+  const SAMPLE_PDF_B64 = SAMPLE_PDF.toString('base64');
+  const FILE_URL = 'https://files.test/run-inputs/org/auto/upload/mbl-4711.pdf?token=signed';
+
+  /**
+   * Routing transport: serves the fixture PDF for the signed file URL and a
+   * canned provider response for everything else, capturing the provider
+   * request bodies so tests can assert the emitted document blocks.
+   */
+  function documentDeps(providerBody: Record<string, unknown>): {
+    deps: AiDeps;
+    providerRequests: Record<string, unknown>[];
+  } {
+    const providerRequests: Record<string, unknown>[] = [];
+    const fetchImpl: typeof globalThis.fetch = async (input, init) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.startsWith('https://files.test/')) {
+        return new Response(SAMPLE_PDF, {
+          status: 200,
+          headers: {
+            'content-type': 'application/pdf',
+            'content-length': String(SAMPLE_PDF.byteLength),
+          },
+        });
+      }
+      const rawBody = init?.body ?? (input instanceof Request ? await input.clone().text() : undefined);
+      providerRequests.push(JSON.parse(String(rawBody)) as Record<string, unknown>);
+      return new Response(JSON.stringify(providerBody), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+    return { deps: { env: TEST_ENV, fetch: fetchImpl }, providerRequests };
+  }
+
+  it('extractStructuredData sends an Anthropic document block; input becomes extra instructions', async () => {
+    const { deps, providerRequests } = documentDeps({
+      content: [
+        {
+          type: 'tool_use',
+          id: 'toolu_doc_1',
+          name: 'extraction',
+          input: { vendor: 'Northwind Traders', total: 129.6 },
+        },
+      ],
+      stop_reason: 'tool_use',
+      // document pages inflate tokensIn; the marker must carry it unchanged
+      usage: { input_tokens: 3894, output_tokens: 58 },
+    });
+    const output = await runExtractStructuredData(
+      {
+        fileUrl: FILE_URL,
+        input: 'Prefer the header fields over line items.',
+        shape: { vendor: 'the vendor name', total: 'total due as a number' },
+        outputVariable: 'invoice',
+        model: 'claude-haiku-4-5',
+        maxTokens: 512,
+      },
+      deps,
+    );
+
+    expect(providerRequests).toHaveLength(1);
+    const messages = providerRequests[0]['messages'] as { content: unknown }[];
+    expect(messages[0].content).toEqual([
+      {
+        type: 'document',
+        source: { type: 'base64', media_type: 'application/pdf', data: SAMPLE_PDF_B64 },
+      },
+      { type: 'text', text: 'Prefer the header fields over line items.' },
+    ]);
+    expect((output['invoice'] as Record<string, unknown>)['vendor']).toBe('Northwind Traders');
+    expect(output['$ai']).toEqual({
+      provider: 'anthropic',
+      model: 'claude-haiku-4-5',
+      tokensIn: 3894,
+      tokensOut: 58,
+    });
+  });
+
+  it('summarize sends an OpenAI file part; fileUrl alone uses the default instruction', async () => {
+    const { deps, providerRequests } = documentDeps({
+      choices: [
+        { message: { content: 'Master bill MBL-4711 for 3 crates, Rotterdam.' }, finish_reason: 'stop' },
+      ],
+      usage: { prompt_tokens: 4123, completion_tokens: 41 },
+    });
+    const output = await runSummarize({ fileUrl: FILE_URL, model: 'gpt-5-mini', maxTokens: 256 }, deps);
+
+    const messages = providerRequests[0]['messages'] as { role: string; content: unknown }[];
+    const user = messages.find((message) => message.role === 'user');
+    expect(user?.content).toEqual([
+      {
+        type: 'file',
+        file: {
+          filename: 'mbl-4711.pdf',
+          file_data: `data:application/pdf;base64,${SAMPLE_PDF_B64}`,
+        },
+      },
+      { type: 'text', text: 'Summarize the attached document.' },
+    ]);
+    expect(output['summary']).toBe('Master bill MBL-4711 for 3 crates, Rotterdam.');
+    expect(output['$ai']).toMatchObject({ tokensIn: 4123, tokensOut: 41 });
+  });
+
+  it('accepts the whole upload descriptor ({{trigger.body.<file>}}) and reads .url', async () => {
+    const { deps, providerRequests } = documentDeps({
+      content: [{ type: 'text', text: 'One-line summary.' }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 2951, output_tokens: 12 },
+    });
+    const output = await runSummarize(
+      {
+        fileUrl: { url: FILE_URL, name: 'mbl-4711.pdf', mime: 'application/pdf', size: SAMPLE_PDF.byteLength },
+        model: 'claude-haiku-4-5',
+      },
+      deps,
+    );
+    const messages = providerRequests[0]['messages'] as { content: { type: string }[] }[];
+    expect(messages[0].content[0].type).toBe('document');
+    expect(output['summary']).toBe('One-line summary.');
+  });
+
+  it('fileUrl guards reject before any provider call', async () => {
+    const { deps, providerRequests } = documentDeps({});
+    await expect(
+      runSummarize({ fileUrl: 'http://files.test/doc.pdf', model: 'claude-haiku-4-5' }, deps),
+    ).rejects.toThrow(/must be an https URL/);
+    await expect(
+      runExtractStructuredData({ fileUrl: 12345, shape: { a: 'b' }, model: 'claude-haiku-4-5' }, deps),
+    ).rejects.toThrow(/"fileUrl" must be an https URL string/);
+    expect(providerRequests).toEqual([]);
+  });
+
+  it('requires input text or a fileUrl document', async () => {
+    const { deps, providerRequests } = documentDeps({});
+    await expect(runSummarize({ model: 'claude-haiku-4-5' }, deps)).rejects.toThrow(
+      /provide "input" text or a "fileUrl" document/,
+    );
+    await expect(runExtractStructuredData({ shape: { a: 'b' } }, deps)).rejects.toThrow(
+      /provide "input" text or a "fileUrl" document/,
+    );
+    expect(providerRequests).toEqual([]);
+  });
+
+  it('text-only steps still send plain string content (no document block)', async () => {
+    const { deps, providerRequests } = documentDeps({
+      choices: [{ message: { content: 'Short.' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 21, completion_tokens: 3 },
+    });
+    await runSummarize({ input: 'A short text to summarize.', model: 'gpt-5-mini' }, deps);
+    const messages = providerRequests[0]['messages'] as { role: string; content: unknown }[];
+    const user = messages.find((message) => message.role === 'user');
+    expect(user?.content).toBe('A short text to summarize.');
+  });
+});
+
 describe('output shaping', () => {
   it('uses action default keys when outputVariable is missing', () => {
     const output = withUsageMarker(undefined, 'data', { a: 1 }, resolveModel('claude-haiku-4-5'), {

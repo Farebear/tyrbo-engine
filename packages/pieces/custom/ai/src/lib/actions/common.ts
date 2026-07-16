@@ -1,6 +1,7 @@
 // TYRBO-PATCH: @tyrbo/piece-ai (fork patch #7, additive piece).
 
 import { Property } from '@activepieces/pieces-framework';
+import { DocumentInput, fetchDocument, MAX_DOCUMENT_MB } from '../document';
 import {
   AI_MARKER_KEY,
   AI_MODELS,
@@ -10,7 +11,7 @@ import {
   DEFAULT_MODEL,
   MAX_OUTPUT_TOKENS_CAP,
 } from '../models';
-import { AiUsage } from '../providers';
+import { AiDeps, AiUsage } from '../providers';
 
 export function modelProp() {
   return Property.StaticDropdown({
@@ -41,6 +42,71 @@ export function outputVariableProp() {
   });
 }
 
+export function fileUrlProp() {
+  return Property.ShortText({
+    displayName: 'File URL',
+    description:
+      `Optional document to read: an https URL of a PDF (≤${MAX_DOCUMENT_MB} MB), ` +
+      'e.g. {{trigger.body.<file>.url}} from a file input. When set, "Input" becomes optional extra instructions',
+    required: false,
+  });
+}
+
+/**
+ * fileUrl intake (M11 file-intake contract 3): `fileUrl` usually arrives as
+ * the signed URL string ({{trigger.body.<file>.url}}), but a flow that
+ * references the whole upload descriptor ({{trigger.body.<file>}} — the
+ * {url, name, mime, size} object from contract 2) resolves to an object;
+ * accept both and read `.url`.
+ */
+export async function resolveDocument({
+  fileUrl,
+  deps,
+}: {
+  fileUrl: unknown;
+  deps?: AiDeps;
+}): Promise<DocumentInput | undefined> {
+  if (fileUrl === null || fileUrl === undefined) {
+    return undefined;
+  }
+  if (typeof fileUrl === 'string' && fileUrl.trim().length === 0) {
+    return undefined;
+  }
+  const descriptor = asRecord(fileUrl);
+  const fromDescriptor = descriptor === undefined ? undefined : descriptor['url'];
+  const url = typeof fromDescriptor === 'string' ? fromDescriptor : fileUrl;
+  if (typeof url !== 'string') {
+    throw new Error(
+      '@tyrbo/piece-ai: "fileUrl" must be an https URL string (or a file-input descriptor with a .url)',
+    );
+  }
+  return fetchDocument({ fileUrl: url, deps });
+}
+
+/**
+ * The document/input contract: with a document attached, the document is the
+ * content and `input` is optional extra instruction text; without one,
+ * `input` is the required source text.
+ */
+export function resolvePrompt({
+  document,
+  input,
+  documentInstruction,
+}: {
+  document: DocumentInput | undefined;
+  input: unknown;
+  documentInstruction: string;
+}): string {
+  if (document === undefined) {
+    const text = asOptionalText(input);
+    if (text === undefined) {
+      throw new Error('@tyrbo/piece-ai: provide "input" text or a "fileUrl" document');
+    }
+    return text;
+  }
+  return asOptionalText(input) ?? documentInstruction;
+}
+
 /**
  * Step output: the result under `outputVariable` (or the action's default
  * key) so downstream engine templates resolve as {{step_N.<var>}}, plus the
@@ -69,14 +135,19 @@ export function withUsageMarker(
 
 /** Coerce a templated prop value ({{vars}} may resolve to objects) to text. */
 export function asText(value: unknown, propName: string): string {
+  const text = asOptionalText(value);
+  if (text === undefined) {
+    throw new Error(`@tyrbo/piece-ai: "${propName}" is required`);
+  }
+  return text;
+}
+
+export function asOptionalText(value: unknown): string | undefined {
   if (typeof value === 'string') {
-    if (value.trim().length === 0) {
-      throw new Error(`@tyrbo/piece-ai: "${propName}" is required`);
-    }
-    return value;
+    return value.trim().length === 0 ? undefined : value;
   }
   if (value === null || value === undefined) {
-    throw new Error(`@tyrbo/piece-ai: "${propName}" is required`);
+    return undefined;
   }
   if (typeof value === 'number' || typeof value === 'boolean') {
     return String(value);

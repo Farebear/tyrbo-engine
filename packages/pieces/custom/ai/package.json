@@ -1,6 +1,6 @@
 {
   "name": "@tyrbo/piece-ai",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Tyrbo run-time AI steps: extract structured data, classify, summarize and generate text (Tyrbo-metered, curated model list)",
   "main": "./dist/src/index.js",
   "scripts": {

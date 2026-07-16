@@ -3,10 +3,19 @@
 import { createAction, Property } from '@activepieces/pieces-framework';
 import { clampMaxTokens, resolveModel } from '../models';
 import { AiDeps, completeText } from '../providers';
-import { asText, maxTokensProp, modelProp, outputVariableProp, withUsageMarker } from './common';
+import {
+  fileUrlProp,
+  maxTokensProp,
+  modelProp,
+  outputVariableProp,
+  resolveDocument,
+  resolvePrompt,
+  withUsageMarker,
+} from './common';
 
 export interface SummarizeProps {
-  input: unknown;
+  input?: unknown;
+  fileUrl?: unknown;
   style?: unknown;
   outputVariable?: unknown;
   model?: unknown;
@@ -18,14 +27,20 @@ export async function runSummarize(props: SummarizeProps, deps?: AiDeps): Promis
   const style =
     typeof props.style === 'string' && props.style.trim().length > 0 ? props.style.trim() : undefined;
   const system = [
-    'Summarize the input text. Reply with the summary only — no preamble.',
+    'Summarize the input. Reply with the summary only — no preamble.',
     ...(style ? [`Style: ${style}.`] : []),
   ].join(' ');
+  const document = await resolveDocument({ fileUrl: props.fileUrl, deps });
   const { text, usage } = await completeText(
     {
       model,
       system,
-      prompt: asText(props.input, 'input'),
+      prompt: resolvePrompt({
+        document,
+        input: props.input,
+        documentInstruction: 'Summarize the attached document.',
+      }),
+      document,
       maxTokens: clampMaxTokens(props.maxTokens),
     },
     deps,
@@ -40,9 +55,11 @@ export const summarize = createAction({
   props: {
     input: Property.LongText({
       displayName: 'Input',
-      description: 'The text to summarize; supports {{vars}}',
-      required: true,
+      description:
+        'The text to summarize; supports {{vars}}. Optional when "File URL" is set (then treated as extra instructions)',
+      required: false,
     }),
+    fileUrl: fileUrlProp(),
     style: Property.ShortText({
       displayName: 'Style',
       description: "Optional style hint, e.g. 'one paragraph' or 'bullets'",
