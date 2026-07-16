@@ -3,7 +3,16 @@
 import { createAction, Property } from '@activepieces/pieces-framework';
 import { clampMaxTokens, resolveModel } from '../models';
 import { AiDeps, completeJson } from '../providers';
-import { asRecord, asText, maxTokensProp, modelProp, outputVariableProp, withUsageMarker } from './common';
+import {
+  asRecord,
+  fileUrlProp,
+  maxTokensProp,
+  modelProp,
+  outputVariableProp,
+  resolveDocument,
+  resolvePrompt,
+  withUsageMarker,
+} from './common';
 
 const SYSTEM = [
   'Extract structured data from the input.',
@@ -36,7 +45,8 @@ export function shapeToJsonSchema(shape: Record<string, unknown>): Record<string
 }
 
 export interface ExtractProps {
-  input: unknown;
+  input?: unknown;
+  fileUrl?: unknown;
   shape: unknown;
   outputVariable?: unknown;
   model?: unknown;
@@ -54,11 +64,17 @@ export async function runExtractStructuredData(
       '@tyrbo/piece-ai: "shape" must be a non-empty object (field name → description of what to extract)',
     );
   }
+  const document = await resolveDocument({ fileUrl: props.fileUrl, deps });
   const { json, usage } = await completeJson(
     {
       model,
       system: SYSTEM,
-      prompt: asText(props.input, 'input'),
+      prompt: resolvePrompt({
+        document,
+        input: props.input,
+        documentInstruction: 'Extract the requested fields from the attached document.',
+      }),
+      document,
       maxTokens: clampMaxTokens(props.maxTokens),
       schemaName: 'extraction',
       schema: shapeToJsonSchema(shape),
@@ -75,9 +91,11 @@ export const extractStructuredData = createAction({
   props: {
     input: Property.LongText({
       displayName: 'Input',
-      description: 'The source text; supports {{vars}} from earlier steps',
-      required: true,
+      description:
+        'The source text; supports {{vars}} from earlier steps. Optional when "File URL" is set (then treated as extra instructions)',
+      required: false,
     }),
+    fileUrl: fileUrlProp(),
     shape: Property.Json({
       displayName: 'Shape',
       description:

@@ -10,6 +10,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
+import { DocumentInput } from './document';
 import { AiModelSpec } from './models';
 
 /** Wall-clock budget per provider call; SDK retries (2) happen within it. */
@@ -29,6 +30,13 @@ export interface TextRequest {
   model: AiModelSpec;
   system?: string;
   prompt: string;
+  /**
+   * fileUrl intake (M11 contract 3): a fetched document the provider reads
+   * natively, placed before the prompt text. Document pages inflate the
+   * provider's input-token count, so metering rides the existing `$ai`
+   * marker unchanged.
+   */
+  document?: DocumentInput;
   maxTokens: number;
 }
 
@@ -70,6 +78,49 @@ function openaiClient(deps?: AiDeps): OpenAI {
   });
 }
 
+function anthropicUserContent({
+  prompt,
+  document,
+}: {
+  prompt: string;
+  document?: DocumentInput;
+}): string | Anthropic.ContentBlockParam[] {
+  if (!document) {
+    return prompt;
+  }
+  return [
+    {
+      type: 'document',
+      source: { type: 'base64', media_type: document.mediaType, data: document.data },
+    },
+    { type: 'text', text: prompt },
+  ];
+}
+
+// Chat Completions' native file part (the Responses-API equivalent is
+// `input_file`); OpenAI ingests the PDF text + per-page images either way.
+function openaiUserContent({
+  prompt,
+  document,
+}: {
+  prompt: string;
+  document?: DocumentInput;
+}): string | OpenAI.Chat.Completions.ChatCompletionContentPart[] {
+  if (!document) {
+    return prompt;
+  }
+  return [
+    {
+      type: 'file',
+      file: {
+        filename: document.filename,
+        file_data: `data:${document.mediaType};base64,${document.data}`,
+      },
+    },
+    { type: 'text', text: prompt },
+  ];
+}
+
 function truncationError(action: string, maxTokens: number): Error {
   return new Error(
     `@tyrbo/piece-ai: the model hit the ${maxTokens}-token output cap before finishing (${action}). ` +
@@ -98,14 +149,14 @@ export async function completeText(
   request: TextRequest,
   deps?: AiDeps,
 ): Promise<{ text: string; usage: AiUsage }> {
-  const { model, system, prompt, maxTokens } = request;
+  const { model, system, prompt, document, maxTokens } = request;
   if (model.provider === 'anthropic') {
     const response = await anthropicClient(deps).messages.create({
       model: model.model,
       max_tokens: maxTokens,
       ...(system ? { system } : {}),
       ...(model.disableThinking ? { thinking: { type: 'disabled' as const } } : {}),
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: anthropicUserContent({ prompt, document }) }],
     });
     if (response.stop_reason === 'max_tokens') {
       throw truncationError('text generation', maxTokens);
@@ -123,7 +174,7 @@ export async function completeText(
     ...(model.openaiReasoningEffort ? { reasoning_effort: model.openaiReasoningEffort } : {}),
     messages: [
       ...(system ? [{ role: 'system' as const, content: system }] : []),
-      { role: 'user' as const, content: prompt },
+      { role: 'user' as const, content: openaiUserContent({ prompt, document }) },
     ],
   });
   const choice = response.choices[0];
@@ -140,7 +191,7 @@ export async function completeJson(
   request: JsonRequest,
   deps?: AiDeps,
 ): Promise<{ json: Record<string, unknown>; usage: AiUsage }> {
-  const { model, system, prompt, maxTokens, schemaName, schema } = request;
+  const { model, system, prompt, document, maxTokens, schemaName, schema } = request;
   if (model.provider === 'anthropic') {
     // Forced tool use is the schema-shaped path that works across the
     // allowlist without strict-schema constraints on user-authored shapes.
@@ -157,7 +208,7 @@ export async function completeJson(
         },
       ],
       tool_choice: { type: 'tool', name: schemaName },
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: anthropicUserContent({ prompt, document }) }],
     });
     if (response.stop_reason === 'max_tokens') {
       throw truncationError('structured output', maxTokens);
@@ -186,7 +237,7 @@ export async function completeJson(
     },
     messages: [
       ...(system ? [{ role: 'system' as const, content: system }] : []),
-      { role: 'user' as const, content: prompt },
+      { role: 'user' as const, content: openaiUserContent({ prompt, document }) },
     ],
   });
   const choice = response.choices[0];

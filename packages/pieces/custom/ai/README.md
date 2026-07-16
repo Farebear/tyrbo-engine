@@ -14,6 +14,20 @@ Actions (matching the `Farebear/tyrbo` AI-builder catalog):
 - `summarize` — optional style hint
 - `generate` — free-form text from an instruction
 
+## Document input (`fileUrl`, M11)
+
+`extractStructuredData` and `summarize` take an optional `fileUrl` prop
+(file-intake contract 3, `Farebear/tyrbo docs/FILE-INTAKE.md`): the signed
+https URL of an uploaded PDF — flows pass `{{trigger.body.<file>.url}}` from
+a file input (the whole `{url, name, mime, size}` descriptor is also
+accepted). The engine child downloads it under hard guards — **https-only,
+≤20 MB, 30 s** — and sends a provider-native document block (Anthropic
+`document` source; OpenAI Chat Completions `file` part, the Responses-API
+`input_file` equivalent), so scanned PDFs work without an OCR service. With
+`fileUrl` set, `input` becomes optional extra instruction text. Metering is
+unchanged: document pages inflate the provider-reported `tokensIn`, which
+the `$ai` marker already carries.
+
 Every action returns `{ [outputVariable]: result, $ai: {provider, model,
 tokensIn, tokensOut} }`. Downstream engine templates read
 `{{step_N.<outputVariable>}}`; the `$ai` marker is aggregated per run by the
@@ -52,6 +66,7 @@ compose for the exact list.
 | `TYRBO_AI_ANTHROPIC_KEY` | Anthropic API key (fly secret on the worker app; Tyrbo-managed, never user-visible) |
 | `TYRBO_AI_OPENAI_KEY` | OpenAI API key (same handling) |
 | `TYRBO_AI_ANTHROPIC_BASE_URL` / `TYRBO_AI_OPENAI_BASE_URL` | optional endpoint overrides for tests / the stubbed-provider e2e; unset in staging/production |
+| `TYRBO_AI_INSECURE_FILE_HOSTS` | comma-separated hostnames exempt from the `fileUrl` https-only guard (e.g. `host.docker.internal` for the e2e's stub file server); unset in staging/production |
 
 ## Tests
 
