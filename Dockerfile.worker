@@ -33,10 +33,10 @@ COPY . .
 # Use the GLOBAL esbuild (npm -g, correct arch) not `npx` — npx resolves the bun-local esbuild whose
 # native binary can be the wrong platform when the lockfile was generated on another OS.
 # isolated-vm / the optional socket.io native addons stay external.
-# TYRBO-PATCH: also build @tyrbo/piece-browser (file-loaded dev piece; its
-# self-contained dist ships below so the worker can execute it without
-# node_modules or a registry download).
-RUN npx turbo run build --filter=@activepieces/engine --filter=@tyrbo/piece-browser && \
+# TYRBO-PATCH: also build @tyrbo/piece-browser and @tyrbo/piece-ai (file-loaded
+# dev pieces; their self-contained dists ship below so the worker can execute
+# them without node_modules or a registry download).
+RUN npx turbo run build --filter=@activepieces/engine --filter=@tyrbo/piece-browser --filter=@tyrbo/piece-ai && \
     esbuild packages/server/worker/src/bootstrap.ts \
         --bundle --platform=node --format=cjs --target=node20 \
         --tsconfig=tsconfig.base.json \
@@ -68,9 +68,11 @@ COPY --from=build /usr/local/bin/bun /usr/local/bin/bun
 COPY --from=build /usr/src/node_modules/isolated-vm /node_modules/isolated-vm
 COPY --from=build /out/worker.js ./worker.js
 COPY --from=build /usr/src/app/dist/packages/engine ./dist/packages/engine
-# TYRBO-PATCH: @tyrbo/piece-browser dist — the engine's dev-piece loader scans
-# <cwd>/packages/pieces/**/dist for a package.json matching AP_DEV_PIECES.
+# TYRBO-PATCH: @tyrbo/piece-browser + @tyrbo/piece-ai dists — the engine's
+# dev-piece loader scans <cwd>/packages/pieces/**/dist for a package.json
+# matching AP_DEV_PIECES.
 COPY --from=build /usr/src/app/packages/pieces/custom/browser/dist ./packages/pieces/custom/browser/dist
+COPY --from=build /usr/src/app/packages/pieces/custom/ai/dist ./packages/pieces/custom/ai/dist
 # apVersionUtil reads <cwd>/package.json for the release version; the worker↔app version gate needs it
 # to match the app's, so ship the workspace package.json (not 0.0.0).
 COPY --from=build /usr/src/app/package.json ./package.json

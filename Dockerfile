@@ -72,9 +72,9 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
 COPY . .
 
 # Build frontend, engine, server API, and worker
-# TYRBO-PATCH: also build @tyrbo/piece-browser — a file-loaded dev piece
-# (AP_DEV_PIECES=browser), so its dist must ship in the image.
-RUN npx turbo run build --filter=web --filter=@activepieces/engine --filter=api --filter=worker --filter=@tyrbo/piece-browser
+# TYRBO-PATCH: also build @tyrbo/piece-browser and @tyrbo/piece-ai — file-loaded
+# dev pieces (AP_DEV_PIECES=browser,ai), so their dists must ship in the image.
+RUN npx turbo run build --filter=web --filter=@activepieces/engine --filter=api --filter=worker --filter=@tyrbo/piece-browser --filter=@tyrbo/piece-ai
 
 # The web build emits hidden source maps (vite build.sourcemap='hidden') used to
 # symbolicate production stack traces in Sentry/BetterStack error tracking. Upload
@@ -91,12 +91,13 @@ RUN node -e "\
 " > packages/server/api/dist/src/migration-manifest.json
 
 # Remove piece directories not needed at runtime (keeps only the 4 pieces api
-# imports, plus @tyrbo/piece-browser which is file-loaded via AP_DEV_PIECES).
-# Then regenerate bun.lock so it matches the trimmed workspace
-# TYRBO-PATCH: keep packages/pieces/custom/browser.
+# imports, plus @tyrbo/piece-browser and @tyrbo/piece-ai which are file-loaded
+# via AP_DEV_PIECES). Then regenerate bun.lock so it matches the trimmed workspace
+# TYRBO-PATCH: keep packages/pieces/custom/browser and packages/pieces/custom/ai.
 RUN rm -rf packages/pieces/core && \
     find packages/pieces/custom -mindepth 1 -maxdepth 1 -type d \
       ! -name browser \
+      ! -name ai \
       -exec rm -rf {} + && \
     find packages/pieces/community -mindepth 1 -maxdepth 1 -type d \
       ! -name slack \

@@ -1,0 +1,21 @@
+{
+  "name": "@tyrbo/piece-ai",
+  "version": "0.1.0",
+  "description": "Tyrbo run-time AI steps: extract structured data, classify, summarize and generate text (Tyrbo-metered, curated model list)",
+  "main": "./dist/src/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json --noEmit && esbuild src/index.ts --bundle --platform=node --format=cjs --target=node20 --keep-names --tsconfig=../../../../tsconfig.base.json --outfile=dist/src/index.js --log-level=warning && cp package.json dist/",
+    "lint": "eslint 'src/**/*.ts'",
+    "test": "vitest run",
+    "record-fixtures": "bun run scripts/record-fixtures.ts"
+  },
+  "dependencies": {
+    "@activepieces/pieces-framework": "workspace:*",
+    "@anthropic-ai/sdk": "0.111.0",
+    "openai": "6.46.0"
+  },
+  "devDependencies": {
+    "tslib": "2.6.2",
+    "vitest": "3.2.6"
+  }
+}

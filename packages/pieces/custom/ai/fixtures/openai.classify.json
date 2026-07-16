@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "case": "openai.classify",
+  "recordedAt": "2026-07-15T21:54:44.022Z",
+  "calls": [
+    {
+      "url": "https://api.openai.com/v1/chat/completions",
+      "method": "POST",
+      "body": {
+        "model": "gpt-5-mini",
+        "max_completion_tokens": 256,
+        "reasoning_effort": "minimal",
+        "response_format": {
+          "type": "json_schema",
+          "json_schema": {
+            "name": "classification",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "enum": [
+                    "bug",
+                    "feature-request",
+                    "question"
+                  ]
+                }
+              },
+              "required": [
+                "label"
+              ],
+              "additionalProperties": false
+            },
+            "strict": false
+          }
+        },
+        "messages": [
+          {
+            "role": "system",
+            "content": "Classify the input into exactly one of the allowed labels. Pick the single best match."
+          },
+          {
+            "role": "user",
+            "content": "The export button crashes the app whenever I click it on the reports page."
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "id": "chatcmpl-E21qtuoZYn9udEifBW2DfpuEY7JjD",
+          "object": "chat.completion",
+          "created": 1784152483,
+          "model": "gpt-5-mini-2025-08-07",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "{\"label\":\"bug\"}",
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 77,
+            "completion_tokens": 17,
+            "total_tokens": 94,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    }
+  ]
+}

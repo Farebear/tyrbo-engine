@@ -71,7 +71,7 @@ jobs:
       - run: bun install --frozen-lockfile
 
       - name: Build core packages, api, worker, web
-        run: npx turbo run build --filter=api --filter=worker --filter=web
+        run: npx turbo run build --filter=api --filter=worker --filter=web --filter=@tyrbo/piece-ai
 
       - name: Lint
         run: npm run lint-core
@@ -79,6 +79,12 @@ jobs:
       - name: Unit tests
         working-directory: packages/server/api
         run: bun run test-unit
+
+      # @tyrbo/piece-ai action tests replay recorded provider fixtures — no
+      # live keys in CI, ever.
+      - name: AI piece unit tests
+        working-directory: packages/pieces/custom/ai
+        run: bun run test
 
       - name: Migration drift check
         run: npx turbo run check-migrations --filter=api

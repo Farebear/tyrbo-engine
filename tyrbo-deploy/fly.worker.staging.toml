@@ -6,6 +6,11 @@
 # Secrets (fly secrets set -a tyrbo-engine-worker-staging ...):
 #   AP_WORKER_TOKEN — HS256 JWT signed with the API's AP_JWT_SECRET,
 #                     payload {id, type: "WORKER", iss: "activepieces"}; see README.md
+#   TYRBO_AI_ANTHROPIC_KEY / TYRBO_AI_OPENAI_KEY — Tyrbo-managed provider keys
+#                     for @tyrbo/piece-ai (M8.5); propagated into the engine
+#                     child via the api app's AP_SANDBOX_PROPAGATED_ENV_VARS.
+#                     Never user-visible; registered in Farebear/tyrbo
+#                     docs/SECRETS.md
 #
 # No [http_service]: the worker has no inbound traffic, it long-polls the API.
 # It therefore never auto-stops; scale it down manually when staging is idle
@@ -25,12 +30,14 @@ AP_EXECUTION_MODE = "UNSANDBOXED"
 # on both machines (shared-cpu burst credits are the scarce resource here)
 AP_WORKER_CONCURRENCY = "4"
 AP_LOG_LEVEL = "warn"
-# @tyrbo/piece-browser (M6) executes in this process from the image
-# filesystem (piece-installer skips dev pieces). Its BullMQ producer reads
-# AP_REDIS_URL — set it as a secret on this app alongside AP_WORKER_TOKEN.
-# Wake config for the scale-to-zero browser pool: TYRBO_FLY_API_TOKEN is a
-# secret; unset disables wake calls (Farebear/tyrbo docs/SECRETS.md).
-AP_DEV_PIECES = "browser"
+# @tyrbo/piece-browser (M6) + @tyrbo/piece-ai (M8.5) execute in this process
+# from the image filesystem (piece-installer skips dev pieces). The browser
+# piece's BullMQ producer reads AP_REDIS_URL — set it as a secret on this app
+# alongside AP_WORKER_TOKEN. Wake config for the scale-to-zero browser pool:
+# TYRBO_FLY_API_TOKEN is a secret; unset disables wake calls. The AI piece
+# reads TYRBO_AI_ANTHROPIC_KEY / TYRBO_AI_OPENAI_KEY (secrets, above).
+# (Farebear/tyrbo docs/SECRETS.md)
+AP_DEV_PIECES = "browser,ai"
 TYRBO_BROWSER_POOL_APP = "tyrbo-browser-worker-staging"
 
 # 512MB was tried and is NOT enough: engine sandbox processes die with ping
