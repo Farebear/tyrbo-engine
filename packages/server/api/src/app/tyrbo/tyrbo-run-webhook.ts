@@ -33,7 +33,7 @@ import { flowVersionService } from '../flows/flow-version/flow-version.service'
 import { system } from '../helper/system/system'
 import { AppSystemProp } from '../helper/system/system-props'
 import { projectService } from '../project/project-service'
-import { aggregateTyrboAiUsage, TyrboAiUsageEntry, tyrboAiStepNames } from './tyrbo-ai-usage'
+import { aggregateTyrboAiUsage, tyrboAiStepNames, TyrboAiUsageEntry } from './tyrbo-ai-usage'
 
 const MAX_ATTEMPTS = 5
 const BASE_DELAY_MS = 1000
