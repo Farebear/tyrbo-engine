@@ -17,7 +17,19 @@
           "version": "detect"
         },
         "import/resolver": {
-          "typescript": {},
+          // The "@/*" paths live in tsconfig.app.json (tsconfig.json is a
+          // solution-style config with no paths), so the resolver must be
+          // pointed at it explicitly. Both entries cover the two cwds eslint
+          // runs from (packages/web via turbo/npm scripts, repo root via IDEs).
+          // The alias resolver below can no longer handle "@/…" on Node >= 23.6:
+          // native type stripping registers a built-in ".ts" loader that
+          // Module._findPath refuses to use for extensionless resolution.
+          "typescript": {
+            "project": [
+              "./tsconfig.app.json",
+              "packages/web/tsconfig.app.json"
+            ]
+          },
           "alias": {
             "map": [
               [
