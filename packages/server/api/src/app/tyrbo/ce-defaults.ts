@@ -10,6 +10,7 @@ import { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
 import { repoFactory } from '../core/db/repo-factory'
 import { getConcurrencyPoolLimitKey, getProjectConcurrencyPoolKey } from '../database/redis/keys'
 import { distributedStore } from '../database/redis-connections'
+import { domainHelper } from '../helper/domain-helper'
 import { ProjectEntity } from '../project/project-entity'
 import { UserEntity } from '../user/user-entity'
 
@@ -350,8 +351,13 @@ export const secretManagersService = (_log: FastifyBaseLogger) => ({
 // ---------------------------------------------------------------------------
 
 export const federatedAuthnService = (_log: FastifyBaseLogger) => ({
+    // Piece OAuth dialogs (BYO and platform-managed alike) read the
+    // THIRD_PARTY_AUTH_PROVIDER_REDIRECT_URL flag for the popup redirect;
+    // returning undefined renders 'no_redirect_url_found' and breaks every
+    // OAuth connect. Match the EE behavior: the frontend /redirect page.
+    // Federated sign-in itself stays disabled in the community edition.
     async getThirdPartyRedirectUrl(): Promise<string | undefined> {
-        return undefined
+        return domainHelper.getPublicUrl({ path: '/redirect' })
     },
 })
 

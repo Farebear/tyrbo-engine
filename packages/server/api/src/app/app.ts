@@ -13,6 +13,7 @@ import { agentsModule } from './agents/agents-module'
 import { aiProviderService } from './ai/ai-provider-service'
 import { aiProviderModule } from './ai/ai-provider.module'
 import { platformAnalyticsModule } from './analytics/platform-analytics.module'
+import { setPlatformOAuthService } from './app-connection/app-connection-service/oauth2'
 import { appConnectionModule } from './app-connection/app-connection.module'
 import { platformAppConnectionModule } from './app-connection/platform-app-connection.module'
 import { authenticationModule } from './authentication/authentication.module'
@@ -60,6 +61,7 @@ import { toolSearchReindexJob } from './tool-search/tool-search-reindex.job'
 import { appEventRoutingModule } from './trigger/app-event-routing/app-event-routing.module'
 import { triggerModule } from './trigger/trigger.module'
 import { tyrboAuthBridgeModule } from './tyrbo/tyrbo-auth-bridge'
+import { tyrboOAuthAppsModule, tyrboPlatformOAuth2Service } from './tyrbo/tyrbo-oauth-apps'
 import { tyrboProjectModule } from './tyrbo/tyrbo-project-module'
 import { platformUserModule } from './user/platform/platform-user-module'
 import { invitationModule } from './user-invitations/user-invitation.module'
@@ -250,6 +252,11 @@ export const setupApp = async (app: FastifyInstance): Promise<FastifyInstance> =
     }
     await app.register(tyrboProjectModule)
     await app.register(tyrboAuthBridgeModule)
+    // TYRBO-PATCH: env-driven platform OAuth clients (tyrbo-oauth-apps.ts) —
+    // discovery endpoint + the claim/refresh handler for PLATFORM_OAUTH2
+    // connections, which upstream leaves as an unimplemented EE seam.
+    await app.register(tyrboOAuthAppsModule)
+    setPlatformOAuthService(tyrboPlatformOAuth2Service(app.log))
     await app.register(communityPiecesModule)
 
     const isCanaryApp = system.getBoolean(AppSystemProp.IS_CANARY_APP) ?? false

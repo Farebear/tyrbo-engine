@@ -124,12 +124,16 @@ export enum AppSystemProp {
     WEBHOOK_TIMEOUT_SECONDS = 'WEBHOOK_TIMEOUT_SECONDS',
     OPENROUTER_PROVISION_KEY = 'OPENROUTER_PROVISION_KEY',
     OPENAI_API_KEY = 'OPENAI_API_KEY',
-    // TYRBO-PATCH: auth bridge (tyrbo-auth-bridge.ts) and run webhook
-    // (tyrbo-run-webhook.ts) configuration
+    // TYRBO-PATCH: auth bridge (tyrbo-auth-bridge.ts), run webhook
+    // (tyrbo-run-webhook.ts) and platform OAuth clients
+    // (tyrbo-oauth-clients.ts) configuration. Per-provider client vars
+    // (AP_TYRBO_OAUTH_<PROVIDER>_CLIENT_ID/_CLIENT_SECRET) have a dynamic
+    // suffix and are read directly from the environment there.
     TYRBO_JWT_PUBLIC_KEY = 'TYRBO_JWT_PUBLIC_KEY',
     TYRBO_JWT_ISSUER = 'TYRBO_JWT_ISSUER',
     TYRBO_API_URL = 'TYRBO_API_URL',
     TYRBO_WEBHOOK_SECRET = 'TYRBO_WEBHOOK_SECRET',
+    TYRBO_OAUTH_CLIENTS = 'TYRBO_OAUTH_CLIENTS',
     EVENT_DESTINATION_TIMEOUT_SECONDS = 'EVENT_DESTINATION_TIMEOUT_SECONDS',
     CANARY_APP_URL = 'CANARY_APP_URL',
     IS_CANARY_APP = 'IS_CANARY_APP',

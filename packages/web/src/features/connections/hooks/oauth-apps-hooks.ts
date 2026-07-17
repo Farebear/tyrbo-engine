@@ -1,16 +1,9 @@
-import {
-  UpsertOAuth2AppRequest,
-  ApEdition,
-  ApFlagId,
-  AppConnectionType,
-} from '@activepieces/shared';
+import { UpsertOAuth2AppRequest, AppConnectionType } from '@activepieces/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { t } from 'i18next';
 import { toast } from 'sonner';
 
 import { PiecesOAuth2AppsMap } from '@/features/connections/utils/oauth2-utils';
-import { flagsHooks } from '@/hooks/flags-hooks';
-import { platformHooks } from '@/hooks/platform-hooks';
 
 import { oauthAppsApi } from '../api/oauth-apps';
 
@@ -70,42 +63,27 @@ export const oauthAppsQueries = {
     };
   },
   usePiecesOAuth2AppsMap() {
-    const { platform } = platformHooks.useCurrentPlatform();
-    const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
-
     return useQuery<PiecesOAuth2AppsMap, Error>({
       queryKey: ['oauth-apps'],
       queryFn: async () => {
-        const apps =
-          edition === ApEdition.COMMUNITY
-            ? {
-                data: [],
-              }
-            : await oauthAppsApi.listPlatformOAuth2Apps({
-                limit: 1000000,
-                cursor: undefined,
-              });
-        const cloudApps = !platform.cloudAuthEnabled
-          ? {}
-          : await oauthAppsApi.listCloudOAuth2Apps(edition!);
-        const appsMap: PiecesOAuth2AppsMap = {};
-
-        Object.entries(cloudApps).forEach(([pieceName, app]) => {
-          appsMap[pieceName] = {
-            cloudOAuth2App: {
-              oauth2Type: AppConnectionType.CLOUD_OAUTH2,
-              clientId: app.clientId,
-            },
-            platformOAuth2App: null,
-          };
+        // TYRBO-PATCH: the community server now serves env-configured
+        // Tyrbo-managed clients from /v1/oauth-apps (tyrbo-oauth-apps.ts), so
+        // drop upstream's edition short-circuit. Cloud OAuth apps
+        // (secrets.activepieces.com) stay off entirely: this fork never
+        // proxies authorization codes through Activepieces cloud, and pieces
+        // without a Tyrbo-managed client fall back to the BYO client-id form.
+        const apps = await oauthAppsApi.listPlatformOAuth2Apps({
+          limit: 1000000,
+          cursor: undefined,
         });
+        const appsMap: PiecesOAuth2AppsMap = {};
         apps.data.forEach((app) => {
           appsMap[app.pieceName] = {
             platformOAuth2App: {
               oauth2Type: AppConnectionType.PLATFORM_OAUTH2,
               clientId: app.clientId,
             },
-            cloudOAuth2App: appsMap[app.pieceName]?.cloudOAuth2App ?? null,
+            cloudOAuth2App: null,
           };
         });
         return appsMap;

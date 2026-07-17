@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'crypto'
-import { ActivepiecesError, assertNotNullOrUndefined, deleteProps, ErrorCode, PlatformId } from '@activepieces/core-utils'
+import { ActivepiecesError, assertNotNullOrUndefined, deleteProps, ErrorCode, isNil, PlatformId } from '@activepieces/core-utils'
 import { PropertyType } from '@activepieces/pieces-framework'
 import { AppConnection, AppConnectionType, BaseOAuth2ConnectionValue, GetOAuth2AuthorizationUrlResponse, OAuth2GrantType, resolveValueFromProps } from '@activepieces/shared'
 import { isAxiosError } from 'axios'
@@ -7,6 +7,7 @@ import { FastifyBaseLogger } from 'fastify'
 import { nanoid } from 'nanoid'
 import { pieceMetadataService } from '../../../pieces/metadata/piece-metadata-service'
 import { secretManagersService } from '../../../tyrbo/ce-defaults'
+import { tyrboOAuthClients } from '../../../tyrbo/tyrbo-oauth-clients'
 
 export const oauth2Util = (log: FastifyBaseLogger) => ({
     formatOAuth2Response: (response: Omit<BaseOAuth2ConnectionValue, 'claimed_at'>): BaseOAuth2ConnectionValue => {
@@ -116,7 +117,18 @@ export const oauth2Util = (log: FastifyBaseLogger) => ({
             projectIds: projectId ? [projectId] : undefined,
         })
         const authUrl = resolveValueFromProps(props, pieceAuth.authUrl)
-        const selectedScopes = resolveSelectedScopes(scopes, pieceAuth.scope)
+        // TYRBO-PATCH: Tyrbo-managed clients may pin an authorize-time scope
+        // subset (e.g. Google sensitive-only launch scopes). Intersect instead
+        // of rejecting so the dialog's select-all default still connects; BYO
+        // connections for the same piece (different client id) are untouched.
+        const scopeClamp = tyrboOAuthClients.getScopeClamp({ pieceName, clientId: resolvedClientId })
+        const clampedScopes = isNil(scopeClamp)
+            ? scopes
+            : (scopes ?? scopeClamp).filter((s) => scopeClamp.includes(s))
+        const selectedScopes = resolveSelectedScopes(
+            !isNil(scopeClamp) && clampedScopes?.length === 0 ? scopeClamp : clampedScopes,
+            pieceAuth.scope,
+        )
         const scope = resolveValueFromProps(props, selectedScopes.join(' '))
 
         const queryParams: Record<string, string> = {
