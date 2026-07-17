@@ -16,10 +16,13 @@ import { wakeBrowserPool } from '../wake';
  * Wall-clock budget waiting for the job to return. Must stay under the
  * engine's per-flow timeout so a dead fleet fails this step cleanly instead
  * of timing out the whole run. Worker-side RUN_TIMEOUT_MS caps the browser
- * itself; the queue-wait allowance covers cold starts + queueing.
+ * itself — the default here mirrors the browser-worker's 30-minute cap
+ * (Farebear/tyrbo apps/browser-worker RUN_TIMEOUT_MS = 1_800_000); the
+ * queue-wait allowance covers cold starts + queueing. The engine apps must
+ * therefore run with AP_FLOW_TIMEOUT_SECONDS >= 2100 (see tyrbo-deploy/).
  */
 function waitBudgetMs(): number {
-  const run = Number.parseInt(process.env.TYRBO_BROWSER_RUN_TIMEOUT_MS ?? '300000', 10);
+  const run = Number.parseInt(process.env.TYRBO_BROWSER_RUN_TIMEOUT_MS ?? '1800000', 10);
   const queueWait = Number.parseInt(process.env.TYRBO_BROWSER_QUEUE_WAIT_MS ?? '120000', 10);
   return run + queueWait;
 }
@@ -156,11 +159,14 @@ export const run = createAction({
     // Scrape outputs become the step output so downstream engine templates
     // resolve as {{step_N.<outputVariable>}}. $run carries diagnostics —
     // written after the spread so it always survives, and the compiler never
-    // generates references starting with "$".
+    // generates references starting with "$". `execution` lets the engine's
+    // run-completion webhook meter cloud fleet time (cloudBrowserMs) without
+    // counting local/device groups.
     return {
       ...result.result.outputs,
       $run: {
         status: result.status,
+        execution,
         workerId: result.workerId,
         timedOut: result.timedOut,
         durationMs: result.durationMs,

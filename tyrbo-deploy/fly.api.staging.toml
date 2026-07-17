@@ -28,6 +28,13 @@ AP_QUEUE_MODE = "REDIS"
 AP_EXECUTION_MODE = "UNSANDBOXED"
 AP_TELEMETRY_ENABLED = "false"
 AP_TYRBO_JWT_ISSUER = "tyrbo"
+# Must exceed the browser piece's wait budget: the browser-worker fleet caps
+# a browser.run at 30 min (RUN_TIMEOUT_MS = 1_800_000) and the piece allows
+# TYRBO_BROWSER_QUEUE_WAIT_MS = 120_000 on top (1920 s total), so a flow with
+# a long cloud browser group must not hit the engine flow timeout first.
+# Read api-side and shipped to workers via the worker-settings response —
+# setting it on the worker app would be a no-op.
+AP_FLOW_TIMEOUT_SECONDS = "2100"
 # warn, not info: the queue dispatcher logs several lines/sec at info, which
 # is measurable CPU at shared-cpu-1x baseline (1/16 vCPU) and drains burst credits
 AP_LOG_LEVEL = "warn"

@@ -54,6 +54,16 @@ jobs:
       - name: Run golden flows
         run: node golden-flows/run.mjs
 
+      # run-browser.mjs plays the browser-worker fleet from the host (stub
+      # BullMQ workers on the piece queues) and asserts the run summary's
+      # cloudBrowserMs; it reuses the stack run.mjs just exercised.
+      - name: Install browser-harness deps
+        run: npm install --no-audit --no-fund
+        working-directory: golden-flows
+
+      - name: Run browser cloud-time e2e
+        run: node golden-flows/run-browser.mjs
+
       - name: Engine logs on failure
         if: failure()
         run: |

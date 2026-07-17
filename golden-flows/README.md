@@ -24,3 +24,17 @@ docker compose -f golden-flows/docker-compose.golden.yml --env-file golden-flows
 
 Requires internet egress: the engine syncs piece metadata from the official
 registry and installs piece packages from npm on first execution.
+
+## Browser cloud-time e2e (`run-browser.mjs`)
+
+Verifies the run summary's `cloudBrowserMs` end to end: it plays the
+browser-worker fleet itself (stub BullMQ workers on `browser-runs` and a
+device queue, via the redis port the compose file exposes on `127.0.0.1:6390`)
+and asserts cloud groups are summed, local/device groups are excluded, and
+FAILED runs still report finished cloud time. Needs `bullmq` — resolved from
+the repo root install, or `npm install` inside `golden-flows/` (what CI does).
+
+```bash
+node golden-flows/run-browser.mjs   # brings the compose stack up/down itself,
+                                    # or reuses one that is already running
+```
