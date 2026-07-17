@@ -1,4 +1,7 @@
-import { UpsertOAuth2AppRequest, AppConnectionType } from '@activepieces/shared';
+import {
+  UpsertOAuth2AppRequest,
+  AppConnectionType,
+} from '@activepieces/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { t } from 'i18next';
 import { toast } from 'sonner';
@@ -72,10 +75,14 @@ export const oauthAppsQueries = {
         // (secrets.activepieces.com) stay off entirely: this fork never
         // proxies authorization codes through Activepieces cloud, and pieces
         // without a Tyrbo-managed client fall back to the BYO client-id form.
-        const apps = await oauthAppsApi.listPlatformOAuth2Apps({
-          limit: 1000000,
-          cursor: undefined,
-        });
+        // A failed listing degrades to BYO for everything rather than
+        // erroring the dialog (upstream CE never fetched here at all).
+        const apps = await oauthAppsApi
+          .listPlatformOAuth2Apps({
+            limit: 1000000,
+            cursor: undefined,
+          })
+          .catch(() => ({ data: [] }));
         const appsMap: PiecesOAuth2AppsMap = {};
         apps.data.forEach((app) => {
           appsMap[app.pieceName] = {
