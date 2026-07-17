@@ -118,6 +118,12 @@ fly deploy -c tyrbo-deploy/fly.worker.staging.toml --image ghcr.io/farebear/tyrb
 
 Gotchas baked into the configs, kept here for the next rebuild:
 
+- `AP_FLOW_TIMEOUT_SECONDS = "2100"` on the **api** app (workers receive it
+  via the worker-settings response — setting it on the worker app is a
+  no-op). It must exceed the browser piece's wait budget: browser-worker
+  `RUN_TIMEOUT_MS` (30 min) + `TYRBO_BROWSER_QUEUE_WAIT_MS` (2 min) = 1920 s.
+  Keep ≥ 2100 if the fleet's run cap ever grows.
+
 - Fly private networking (6PN) is **IPv6-only** — ioredis needs `?family=6`
   on any `.internal` Redis URL or it hangs resolving AAAA-only hosts.
 - The Postgres volume mounts at `/var/lib/postgresql/data` but `PGDATA` must

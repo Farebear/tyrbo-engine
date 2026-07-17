@@ -84,3 +84,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    # Exposed to the host for run-browser.mjs: its stub browser-run workers
+    # consume the piece's BullMQ queues from the host process. 6390 avoids
+    # colliding with a locally running redis on 6379.
+    ports:
+      - '127.0.0.1:6390:6379'

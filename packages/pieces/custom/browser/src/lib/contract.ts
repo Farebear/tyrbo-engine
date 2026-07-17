@@ -1,7 +1,7 @@
 // TYRBO-PATCH: @tyrbo/piece-browser (fork patch #5, additive piece).
 //
 // Queue contract with the browser-run executors. SOURCE OF TRUTH:
-// Farebear/tyrbo apps/browser-worker/src/contract.ts — this is a mirrored
+// Farebear/tyrbo packages/run-contract/src/queue.ts — this is a mirrored
 // copy (the repos cannot share a workspace import). Bump
 // JOB_CONTRACT_VERSION in BOTH places on any breaking change so a stale
 // producer/consumer pair fails loudly instead of misbehaving.
@@ -9,9 +9,14 @@
 /** Cloud fleet queue (BullMQ on the engine Redis). */
 export const BROWSER_RUNS_QUEUE = 'browser-runs';
 
-/** Per-device queue for `execution: local` steps, consumed by the desktop app (M7). */
+/**
+ * Per-device queue for `execution: local` steps, consumed by the desktop app
+ * (M7). Dot separator, NOT the PLAN's original `device:{deviceId}` — BullMQ
+ * rejects `:` in queue names outright; matches the source-of-truth fix in
+ * Farebear/tyrbo packages/run-contract/src/queue.ts.
+ */
 export function deviceQueueName(deviceId: string): string {
-  return `device:${deviceId}`;
+  return `device.${deviceId}`;
 }
 
 export const JOB_CONTRACT_VERSION = 1;

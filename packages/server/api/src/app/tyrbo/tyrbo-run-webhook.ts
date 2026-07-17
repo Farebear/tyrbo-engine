@@ -10,7 +10,7 @@
 //   Authorization: Bearer $AP_TYRBO_WEBHOOK_SECRET   (when configured)
 //   { runId, orgId, engineProjectId, flowId, flowVersionId, status,
 //     environment, startTime, finishTime, durationMs, stepsCount,
-//     failedStepName, tags, aiUsage? }
+//     failedStepName, tags, aiUsage?, cloudBrowserMs? }
 //
 // orgId is the engine project's externalId, written by the auth bridge
 // (tyrbo-auth-bridge.ts) — the product joins on it without cross-DB queries.
@@ -20,8 +20,16 @@
 // aiUsage (M8.5): when the flow contains @tyrbo/piece-ai steps, the payload
 // additionally carries one aggregated entry per AI step (tokens summed
 // across loop iterations) for `ai_step_debit` billing — see
-// tyrbo-ai-usage.ts. Aggregation is best-effort: on any failure the summary
-// posts without the field and the product charges 0 AI credits.
+// tyrbo-ai-usage.ts.
+//
+// cloudBrowserMs: when the flow contains @tyrbo/piece-browser steps, the
+// payload additionally carries the summed executor-reported durationMs of
+// the run's CLOUD browser.run jobs (local/device groups never count) — see
+// tyrbo-browser-usage.ts. Present on FAILED runs too: groups that finished
+// before the failure are still cloud time.
+//
+// Both aggregations are best-effort: on any failure the summary posts
+// without the field(s) and the product meters zero for the missing data.
 import { isNil, spreadIfDefined } from '@activepieces/core-utils'
 import { safeHttp } from '@activepieces/server-utils'
 import { FileType, FlowRun, LogSliceRef } from '@activepieces/shared'
@@ -34,6 +42,7 @@ import { system } from '../helper/system/system'
 import { AppSystemProp } from '../helper/system/system-props'
 import { projectService } from '../project/project-service'
 import { aggregateTyrboAiUsage, tyrboAiStepNames, TyrboAiUsageEntry } from './tyrbo-ai-usage'
+import { aggregateTyrboCloudBrowserMs, tyrboBrowserStepNames } from './tyrbo-browser-usage'
 
 const MAX_ATTEMPTS = 5
 const BASE_DELAY_MS = 1000
@@ -82,7 +91,7 @@ async function buildRunSummary(flowRun: FlowRun, log: FastifyBaseLogger): Promis
     const durationMs = !isNil(flowRun.startTime) && !isNil(flowRun.finishTime)
         ? dayjs(flowRun.finishTime).diff(dayjs(flowRun.startTime), 'millisecond')
         : null
-    const aiUsage = await collectAiUsage(flowRun, log)
+    const usage = await collectUsage(flowRun, log)
     return {
         runId: flowRun.id,
         orgId: project?.externalId ?? null,
@@ -97,37 +106,44 @@ async function buildRunSummary(flowRun: FlowRun, log: FastifyBaseLogger): Promis
         stepsCount: flowRun.stepsCount ?? null,
         failedStepName: flowRun.failedStep?.name ?? null,
         tags: flowRun.tags ?? [],
-        ...spreadIfDefined('aiUsage', aiUsage),
+        ...spreadIfDefined('aiUsage', usage.aiUsage),
+        ...spreadIfDefined('cloudBrowserMs', usage.cloudBrowserMs),
     }
 }
 
-async function collectAiUsage(flowRun: FlowRun, log: FastifyBaseLogger): Promise<TyrboAiUsageEntry[] | undefined> {
+async function collectUsage(flowRun: FlowRun, log: FastifyBaseLogger): Promise<TyrboRunUsage> {
     try {
         const flowVersion = await flowVersionService(log).getOne(flowRun.flowVersionId)
         if (isNil(flowVersion)) {
-            return undefined
+            return {}
         }
         const aiStepNames = tyrboAiStepNames(flowVersion)
-        if (aiStepNames.size === 0) {
-            return undefined
+        const browserStepNames = tyrboBrowserStepNames(flowVersion)
+        if (aiStepNames.size === 0 && browserStepNames.size === 0) {
+            return {}
         }
         const steps = await flowRunService(log).getStepsOrNull({ flowRun })
         if (isNil(steps)) {
-            return undefined
+            return {}
         }
-        const entries = await aggregateTyrboAiUsage({
-            steps,
-            aiStepNames,
-            fetchSlice: (ref) => fetchSlice(log, flowRun.projectId, ref),
-        })
-        return entries.length > 0 ? entries : undefined
+        const sliceFetcher = (ref: LogSliceRef) => fetchSlice(log, flowRun.projectId, ref)
+        const entries = aiStepNames.size > 0
+            ? await aggregateTyrboAiUsage({ steps, aiStepNames, fetchSlice: sliceFetcher })
+            : []
+        const cloudBrowserMs = browserStepNames.size > 0
+            ? await aggregateTyrboCloudBrowserMs({ steps, browserStepNames, fetchSlice: sliceFetcher })
+            : undefined
+        return {
+            ...spreadIfDefined('aiUsage', entries.length > 0 ? entries : undefined),
+            ...spreadIfDefined('cloudBrowserMs', cloudBrowserMs),
+        }
     }
     catch (error) {
         log.warn(
             { flowRun: { id: flowRun.id }, error: error instanceof Error ? error.message : String(error) },
-            '[tyrboRunWebhook] AI usage aggregation failed; posting run summary without aiUsage',
+            '[tyrboRunWebhook] usage aggregation failed; posting run summary without aiUsage/cloudBrowserMs',
         )
-        return undefined
+        return {}
     }
 }
 
@@ -168,4 +184,10 @@ type TyrboRunSummary = {
     failedStepName: string | null
     tags: string[]
     aiUsage?: TyrboAiUsageEntry[]
+    cloudBrowserMs?: number
+}
+
+type TyrboRunUsage = {
+    aiUsage?: TyrboAiUsageEntry[]
+    cloudBrowserMs?: number
 }

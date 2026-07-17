@@ -1,6 +1,6 @@
 {
   "name": "@tyrbo/piece-browser",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Tyrbo browser automation: runs compiled browser sub-programs on the cloud fleet or a linked device",
   "main": "./dist/src/index.js",
   "scripts": {

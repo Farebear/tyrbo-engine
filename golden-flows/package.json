@@ -1,0 +1,9 @@
+{
+  "name": "tyrbo-golden-flows",
+  "private": true,
+  "version": "0.0.0",
+  "description": "TYRBO-PATCH: golden-flow harness deps. run.mjs stays dependency-free; run-browser.mjs needs bullmq for its stub browser-run workers (locally it resolves the repo root install; CI runs `npm install` here). Not a bun workspace member on purpose.",
+  "dependencies": {
+    "bullmq": "5.61.0"
+  }
+}
