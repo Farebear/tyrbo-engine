@@ -68,6 +68,7 @@ const systemPropValidators: {
     [AppSystemProp.TYRBO_API_URL]: urlValidator,
     [AppSystemProp.TYRBO_WEBHOOK_SECRET]: stringValidator,
     [AppSystemProp.TYRBO_OAUTH_CLIENTS]: validateTyrboOAuthClientsJson,
+    [AppSystemProp.TYRBO_TRELLO_API_KEY]: stringValidator,
     [AppSystemProp.TYRBO_DISCORD_BOT_TOKEN]: stringValidator,
     [AppSystemProp.TYRBO_DISCORD_CLIENT_ID]: stringValidator,
     [AppSystemProp.MAX_FILE_SIZE_MB]: numberValidator,
