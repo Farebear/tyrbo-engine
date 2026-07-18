@@ -112,6 +112,37 @@ describe('tyrboOAuthClients', () => {
             clientId: 'slack-id',
         })).toBeUndefined()
     })
+
+    it('configuredPieceNames is empty when nothing is configured', () => {
+        expect(tyrboOAuthClients.configuredPieceNames()).toEqual([])
+    })
+
+    it('configuredPieceNames lists only the pieces a configured provider covers', () => {
+        process.env.AP_TYRBO_OAUTH_GOOGLE_CLIENT_ID = 'google-id'
+        process.env.AP_TYRBO_OAUTH_GOOGLE_CLIENT_SECRET = 'google-secret'
+
+        const pieces = tyrboOAuthClients.configuredPieceNames().sort()
+        expect(pieces).toEqual([
+            '@activepieces/piece-gmail',
+            '@activepieces/piece-google-sheets',
+        ])
+        // restricted-scope google pieces stay out, so the gallery keeps their
+        // "coming soon" badge even while GOOGLE is configured
+        expect(pieces).not.toContain('@activepieces/piece-google-drive')
+    })
+
+    it('configuredPieceNames includes JSON-configured pieces alongside env pairs', () => {
+        process.env.AP_TYRBO_OAUTH_SLACK_CLIENT_ID = 'slack-id'
+        process.env.AP_TYRBO_OAUTH_SLACK_CLIENT_SECRET = 'slack-secret'
+        process.env.AP_TYRBO_OAUTH_CLIENTS = JSON.stringify({
+            '@activepieces/piece-github': { clientId: 'gh-id', clientSecret: 'gh-secret' },
+        })
+
+        expect(tyrboOAuthClients.configuredPieceNames().sort()).toEqual([
+            '@activepieces/piece-github',
+            '@activepieces/piece-slack',
+        ])
+    })
 })
 
 describe('validateTyrboOAuthClientsJson', () => {

@@ -105,6 +105,15 @@ export const tyrboOAuthClients = {
         }
         return clients
     },
+    // Piece names with a configured platform OAuth client, for the product's
+    // public connector-gallery discovery (tyrbo-oauth-apps.ts GET /pieces).
+    // Piece names — not provider ids — are the stable identifier both repos
+    // share (the engine's PROVIDER_PIECES key MICROSOFT_OUTLOOK is the web's
+    // "microsoft"), and per-piece truth keeps google-drive/forms correctly
+    // "coming soon" even when GOOGLE is configured.
+    configuredPieceNames(): string[] {
+        return [...tyrboOAuthClients.all().keys()]
+    },
     getForPiece(pieceName: string): TyrboOAuthClientConfig | undefined {
         return tyrboOAuthClients.all().get(pieceName)
     },
