@@ -4,6 +4,8 @@ import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { securityAccess } from '../core/security/authorization/fastify-security'
 import { secretManagersService } from '../tyrbo/ce-defaults'
 import { tyrboDiscordBot } from '../tyrbo/tyrbo-discord-bot'
+// TYRBO-PATCH: inject the platform Trello API key onto the resolved connection value.
+import { injectTrelloPlatformKey } from '../tyrbo/tyrbo-trello-connect'
 import { appConnectionService } from './app-connection-service/app-connection-service'
 
 export const appConnectionWorkerController: FastifyPluginAsyncZod = async (app) => {
@@ -31,10 +33,14 @@ export const appConnectionWorkerController: FastifyPluginAsyncZod = async (app) 
 
         return {
             ...appConnection,
-            // TYRBO-PATCH: merge the shared platform Discord bot token onto the resolved
-            // value so actions/dropdowns get `{ ...props, secret_text }`. No-op for every
-            // other piece, for non-CUSTOM_AUTH connections, and when the token is unset.
-            value: tyrboDiscordBot.injectForRuntime({ pieceName: appConnection.pieceName, value: resolvedValue }),
+            // TYRBO-PATCH: merge the shared platform Discord bot token / Trello API key
+            // onto the resolved value so actions and dropdowns get the injected
+            // credentials. Each is a no-op for the other piece, for non-CUSTOM_AUTH
+            // connections, and when the platform secret is unset.
+            value: injectTrelloPlatformKey({
+                pieceName: appConnection.pieceName,
+                value: tyrboDiscordBot.injectForRuntime({ pieceName: appConnection.pieceName, value: resolvedValue }),
+            }),
         }
     },
     )

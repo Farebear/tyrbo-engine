@@ -23,9 +23,10 @@ import { toTrelloCreds } from './lib/common/auth';
 // TYRBO-PATCH: Tyrbo-managed Trello connect. Users no longer paste an API key —
 // the platform holds a single Trello Power-Up API key server-side and each user
 // approves via Trello's authorize flow to mint a per-user token, which is all
-// that is stored here. The key is injected at run time (engine connection
-// resolver) and for validation (server), so the piece only ever handles the
-// token. See .agents/features/trello-shared-connect.md.
+// that is stored here. The key is injected server-side onto the resolved
+// connection value (worker controller at run time, app-connection service for
+// validation), so the piece only ever handles the token. See
+// .agents/features/trello-shared-connect.md.
 const markdownProperty = `
 Connect your Trello account by authorizing access — no API key needed. You will be redirected to Trello to grant access, and a personal token is minted and stored for you.
 
@@ -41,12 +42,11 @@ export const trelloAuth = PieceAuth.CustomAuth({
       required: true,
     }),
   },
-  // The stored value is only { token }; the platform API key is injected as the
-  // BASIC_AUTH username before this runs (server-side, since validation bypasses
-  // the connection resolver). Legacy BYO connections arrive as { username,
-  // password }. Both resolve through toTrelloCreds. A missing platform key on a
-  // Tyrbo instance surfaces here as an invalid connection rather than a silent
-  // failure at run time.
+  // The stored value is only { token }; the platform API key is merged onto the
+  // props server-side (as `username`, token as `password`) before validate() runs.
+  // Legacy BYO connections arrive as { username, password }. Both resolve through
+  // toTrelloCreds. A missing platform key on a Tyrbo instance surfaces here as an
+  // invalid connection rather than a silent failure at run time.
   validate: async ({ auth }) => {
     try {
       const { key, token } = toTrelloCreds(auth);

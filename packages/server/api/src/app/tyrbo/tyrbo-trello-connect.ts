@@ -1,24 +1,30 @@
-// TYRBO-PATCH: Tyrbo-managed Trello connect — server helpers + authorize-URL API.
+// TYRBO-PATCH: Tyrbo-managed Trello connect — server-side credential injection.
 //
-// Upstream Trello is a two-value paste (API Key + Token). Tyrbo instead holds a
-// single Trello Power-Up API key (AP_TYRBO_TRELLO_API_KEY) and each user mints a
-// per-user token via Trello's authorize flow; the connection stores only that
-// token. This module owns the two server-side halves of that model:
+// Upstream's Trello piece makes every user paste an API Key + Token. Tyrbo holds
+// ONE platform-owned Trello Power-Up API key and each user mints a per-user token
+// via Trello's authorize flow; the connection stores only that token
+// (CUSTOM_AUTH { token }).
 //
-//   injectTrelloValidationKey
-//       executeValidateAuth receives the entered value directly (it does NOT go
-//       through the engine connection-resolver, which handles run-time
-//       injection), so the platform key is injected here — as the BASIC_AUTH
-//       username the piece reads — so the piece's validate() can call Trello.
-//       Passthrough for every other piece and for legacy BYO BASIC_AUTH
-//       connections; a missing key on a Trello CUSTOM_AUTH connection surfaces
-//       as a loud misconfiguration rather than a silent run-time failure.
+// The API key is injected into the resolved CUSTOM_AUTH props here, server-side —
+// as `username` (token becomes `password`, the shape legacy BYO BASIC_AUTH paste
+// connections already carry) — at the two points the piece needs it:
+//   - connection resolve  (app-connection-worker-controller.ts) — runtime auth +
+//     the board/list/label dropdowns, both of which the engine resolves through
+//     that endpoint;
+//   - connection validate (app-connection-service.ts)          — the piece's
+//     validate() lists the user's boards.
 //
-//   GET /v1/tyrbo/trello/authorize-url
-//       builds the Trello authorize URL the product's Connect flow opens. The
-//       return_url is pinned to this instance's own AP_FRONTEND_URL (never a
-//       caller-supplied value) so the minted token can only ever come back to
-//       us. Least privilege: scope=read,write, never account.
+// Injecting server-side (rather than reading the key in the sandboxed engine,
+// whose env is the AP_SANDBOX_PROPAGATED_ENV_VARS allowlist) keeps it zero-setup:
+// the key stays in the API process env and travels only inside the trello
+// connection value over the authenticated engine<->API channel.
+//
+// Every injection is a no-op unless the piece is trello, the stored value is
+// CUSTOM_AUTH with a token, and AP_TYRBO_TRELLO_API_KEY is set — so legacy pasted
+// BASIC_AUTH connections and non-Tyrbo deployments are left exactly as-is. The
+// authorize-URL endpoint builds the Trello authorize URL the product's Connect
+// flow opens; least privilege scope=read,write, and return_url is pinned to this
+// instance's own AP_FRONTEND_URL so the minted token can only return to us.
 //
 // See .agents/features/trello-shared-connect.md.
 import { ActivepiecesError, ErrorCode, isNil } from '@activepieces/core-utils'
@@ -42,19 +48,31 @@ const tyrboTrelloConnectController: FastifyPluginAsyncZod = async (app) => {
     })
 }
 
-export function injectTrelloValidationKey({ pieceName, value }: InjectTrelloValidationKeyParams): AppConnectionValue {
-    if (pieceName !== TRELLO_PIECE_NAME || value.type !== AppConnectionType.CUSTOM_AUTH) {
+// Runtime resolve + connection validate need the same thing: the platform key
+// merged onto the stored token. `context.auth` is read through the piece's
+// toTrelloCreds bridge, which accepts both the flattened props (validate, context
+// V0) and the full { type, props } value (actions/dropdowns, context V1).
+export function injectTrelloPlatformKey({ pieceName, value }: InjectTrelloPlatformKeyParams): AppConnectionValue {
+    const apiKey = readEnv(AppSystemProp.TYRBO_TRELLO_API_KEY)
+    if (pieceName !== TRELLO_PIECE_NAME || isNil(apiKey) || value.type !== AppConnectionType.CUSTOM_AUTH) {
         return value
     }
     const token = value.props?.token
     if (isNil(token) || typeof token !== 'string' || token === '') {
         return value
     }
-    const apiKey = getConfiguredApiKeyOrThrow()
     return {
-        type: AppConnectionType.CUSTOM_AUTH,
-        props: { username: apiKey, password: token },
+        ...value,
+        props: {
+            ...value.props,
+            username: apiKey,
+            password: token,
+        },
     }
+}
+
+export function isTrelloPlatformKeyConfigured(): boolean {
+    return !isNil(readEnv(AppSystemProp.TYRBO_TRELLO_API_KEY))
 }
 
 function buildTrelloAuthorizeUrl({ appName }: { appName: string }): string {
@@ -73,8 +91,8 @@ function buildTrelloAuthorizeUrl({ appName }: { appName: string }): string {
 }
 
 function getConfiguredApiKeyOrThrow(): string {
-    const apiKey = system.get(AppSystemProp.TYRBO_TRELLO_API_KEY)
-    if (isNil(apiKey) || apiKey === '') {
+    const apiKey = readEnv(AppSystemProp.TYRBO_TRELLO_API_KEY)
+    if (isNil(apiKey)) {
         throw new ActivepiecesError({
             code: ErrorCode.INVALID_APP_CONNECTION,
             params: {
@@ -85,13 +103,18 @@ function getConfiguredApiKeyOrThrow(): string {
     return apiKey
 }
 
+function readEnv(prop: AppSystemProp): string | undefined {
+    const value = system.get(prop)
+    return isNil(value) || value === '' ? undefined : value
+}
+
 const AuthorizeUrlRequest = {
     config: {
         security: securityAccess.publicPlatform([PrincipalType.USER, PrincipalType.SERVICE]),
     },
 }
 
-type InjectTrelloValidationKeyParams = {
+type InjectTrelloPlatformKeyParams = {
     pieceName: string
     value: AppConnectionValue
 }
