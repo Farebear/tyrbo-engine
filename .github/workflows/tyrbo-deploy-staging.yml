@@ -1,0 +1,58 @@
+# TYRBO-PATCH: deploy the staging engine apps to Fly whenever their committed
+# image pin changes on `tyrbo`. Closes the gap where a repin commit (engine
+# PR #21 bumped the pin to 80d55d544f) landed in git but was never `fly
+# deploy`d, so staging silently kept running the pre-OAuth image. The committed
+# `[build] image` in the fly.*.staging.toml files is the source of truth.
+#
+# Requires a FLY_API_TOKEN Actions secret with deploy access to BOTH
+# tyrbo-engine-api-staging and tyrbo-engine-worker-staging (see
+# tyrbo-deploy/README.md). Until it is set, this workflow fails fast with a
+# clear message rather than half-deploying.
+name: Tyrbo Deploy Staging
+
+on:
+  push:
+    branches:
+      - tyrbo
+    paths:
+      - tyrbo-deploy/fly.api.staging.toml
+      - tyrbo-deploy/fly.worker.staging.toml
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# never let two deploys overlap; let an in-flight deploy finish rather than
+# interrupting it mid-rollout
+concurrency:
+  group: tyrbo-deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy staging engine to the committed pin
+    runs-on: ubuntu-latest
+    if: github.repository == 'Farebear/tyrbo-engine'
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Require FLY_API_TOKEN
+        run: |
+          if [ -z "${FLY_API_TOKEN}" ]; then
+            echo "::error::FLY_API_TOKEN secret is not set. Create a Fly deploy token with access to tyrbo-engine-api-staging AND tyrbo-engine-worker-staging and add it under repo Settings → Secrets and variables → Actions. See tyrbo-deploy/README.md."
+            exit 1
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Deploy (api then worker) to the pinned image
+        run: node tyrbo-deploy/scripts/deploy-staging.mjs
+
+      - name: Verify deployed image matches the committed pin
+        run: node tyrbo-deploy/scripts/check-image-drift.mjs

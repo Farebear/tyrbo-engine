@@ -1,0 +1,62 @@
+# TYRBO-PATCH: catch a committed staging image pin that was never deployed.
+# The `unit` job validates the pin-compare logic on every PR that touches it;
+# the `drift` job compares the live Fly image against the committed pin on a
+# schedule and fails loudly if they diverge — turning the "committed-but-
+# undeployed pin" gap into a red build instead of a silent stale staging.
+name: Tyrbo Image Drift
+
+on:
+  schedule:
+    # twice daily; catches an undeployed pin within ~12h of it merging
+    - cron: '17 7,19 * * *'
+  pull_request:
+    paths:
+      - tyrbo-deploy/scripts/**
+      - tyrbo-deploy/fly.api.staging.toml
+      - tyrbo-deploy/fly.worker.staging.toml
+      - .github/workflows/tyrbo-image-drift.yml
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Pin-compare unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: node --test tyrbo-deploy/scripts/image-pin.test.mjs
+
+  drift:
+    name: Deployed image vs committed pin
+    runs-on: ubuntu-latest
+    needs: unit
+    # Live, secrets-dependent check: only on the canonical repo, and never on
+    # pull_request — a PR that bumps the pin legitimately differs from the live
+    # image until the deploy workflow runs on merge, so checking it on the PR
+    # would false-fail.
+    if: github.repository == 'Farebear/tyrbo-engine' && github.event_name != 'pull_request'
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Require FLY_API_TOKEN
+        run: |
+          if [ -z "${FLY_API_TOKEN}" ]; then
+            echo "::error::FLY_API_TOKEN secret is not set — the drift check cannot query Fly. See tyrbo-deploy/README.md."
+            exit 1
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Compare live Fly image against the committed pin
+        run: node tyrbo-deploy/scripts/check-image-drift.mjs

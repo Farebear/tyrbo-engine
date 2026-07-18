@@ -10,6 +10,9 @@ The `[build] image` default in the api/worker tomls is this SHA; the deploy
 runbook below overrides it with `--image …:$SHA` from the checkout's HEAD.
 The previous pin `f460c4cf` (M8.5) predates PR #18, so a plain redeploy from it
 would ship the engine **without** hero-provider OAuth — hence this bump.
+Changing this pin on `tyrbo` now triggers `tyrbo-deploy-staging.yml` to deploy
+it automatically, and `tyrbo-image-drift.yml` fails if the live image ever
+lags the committed pin again — see *Deploying (automated on pin change)* below.
 
 Apps (org `tyrbo`, region `iad`) — one `shared-cpu-1x` machine each, no HA spares:
 
@@ -38,6 +41,53 @@ harshest client staging ever sees) the API can still go briefly deaf while
 shared-CPU burst credits recover — a laptop suite run may flake 2–3 flows.
 Every flow shape was validated individually against staging on 2026-07-14;
 the authoritative full-pass gate is `tyrbo-golden-flows.yml` in CI.
+
+## Deploying (automated on pin change)
+
+The staging pin is the `[build] image` line in `fly.api.staging.toml` and
+`fly.worker.staging.toml`. Two workflows keep the **deployed** image and that
+**committed** pin from silently drifting apart — the failure that left staging
+on the pre-OAuth image after engine PR #21 repinned to `80d55d544f` but nobody
+ran `fly deploy`:
+
+- **`.github/workflows/tyrbo-deploy-staging.yml`** — on every push to `tyrbo`
+  that changes either staging toml (a repin commit), plus manual
+  `workflow_dispatch`, deploys **both** apps to the pinned image, **api first
+  then worker**, via `tyrbo-deploy/scripts/deploy-staging.mjs`, and re-checks
+  for drift afterwards. This is what makes a committed repin actually reach Fly.
+- **`.github/workflows/tyrbo-image-drift.yml`** — unit-tests the pin-compare
+  logic (`node --test tyrbo-deploy/scripts/image-pin.test.mjs`) on every PR
+  that touches it, and twice daily compares the live Fly image
+  (`flyctl image show --json`) against the committed pin, **failing the build if
+  they diverge**. A committed-but-undeployed pin becomes a red check, not a
+  stale staging nobody notices.
+
+**Required one-time setup — `FLY_API_TOKEN` Actions secret.** Both workflows
+authenticate to Fly with a `FLY_API_TOKEN` repo secret that must reach **both**
+`tyrbo-engine-api-staging` and `tyrbo-engine-worker-staging`. Create an
+org-scoped deploy token and store it under repo **Settings → Secrets and
+variables → Actions**:
+
+```sh
+fly tokens create org -o tyrbo-721 -n "gha staging engine deploy"
+gh secret set FLY_API_TOKEN --repo Farebear/tyrbo-engine   # paste the token
+```
+
+(An app-scoped `fly tokens create deploy -a <app>` is tighter but only covers
+one app; the workflow needs one token that reaches both.) Until the secret is
+set, both workflows **fail fast** with an explanatory error instead of
+half-deploying.
+
+**Manual deploy / rollback** use the same tested script path from a laptop:
+
+```sh
+FLYCTL_BIN=fly node tyrbo-deploy/scripts/deploy-staging.mjs      # deploy the committed pin
+FLYCTL_BIN=fly node tyrbo-deploy/scripts/check-image-drift.mjs   # compare live vs committed
+```
+
+To roll back, repin both tomls to the previous SHA and push (the deploy
+workflow redeploys it), or run the explicit `fly deploy … --image …:<sha>`
+commands under *One-time provisioning* below.
 
 ## Cost guardrails (read before touching infra)
 
