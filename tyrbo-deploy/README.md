@@ -5,6 +5,12 @@ from scratch on 2026-07-14 after the Upstash cost incident (see guardrails).
 Images come from the `tyrbo-release.yml` workflow (GHCR, tagged by commit SHA
 plus a moving `tyrbo` branch tag). Staging deploys pin the SHA tag.
 
+**Current pin: `80d55d544f` (tyrbo HEAD, includes `PLATFORM_OAUTH2` / engine PR #18).**
+The `[build] image` default in the api/worker tomls is this SHA; the deploy
+runbook below overrides it with `--image …:$SHA` from the checkout's HEAD.
+The previous pin `f460c4cf` (M8.5) predates PR #18, so a plain redeploy from it
+would ship the engine **without** hero-provider OAuth — hence this bump.
+
 Apps (org `tyrbo`, region `iad`) — one `shared-cpu-1x` machine each, no HA spares:
 
 | App | Config | Image | Size |
@@ -108,10 +114,20 @@ fly secrets set -a tyrbo-engine-api-staging \
   AP_TYRBO_JWT_PUBLIC_KEY="$(cat public.pem)" AP_TYRBO_WEBHOOK_SECRET=...
 fly secrets set -a tyrbo-engine-worker-staging AP_WORKER_TOKEN=...
 
+# Hero-provider OAuth (PLATFORM_OAUTH2, engine PR #18) — set one pair per hero app,
+# api-side only (token exchange runs in the API, so these are NOT sandbox-propagated).
+# Redirect URI to register in each provider console: https://<api-app-frontend>/redirect.
+# Add each configured provider id to TYRBO_CONFIGURED_OAUTH_PROVIDERS on the web app
+# (Vercel) to retire its gallery "coming soon" badge. Provider suffixes:
+# GOOGLE, SLACK, GITHUB, NOTION, DROPBOX, MICROSOFT_OUTLOOK, HUBSPOT, ASANA, CLICKUP, MAILCHIMP.
+fly secrets set -a tyrbo-engine-api-staging \
+  AP_TYRBO_OAUTH_SLACK_CLIENT_ID=... AP_TYRBO_OAUTH_SLACK_CLIENT_SECRET=...
+# (repeat per hero provider; per-piece/scope overrides via AP_TYRBO_OAUTH_CLIENTS JSON)
+
 # data tier first, then api (runs TyrboBaseline migrations on boot), then worker
 fly deploy -c tyrbo-deploy/fly.db.staging.toml    --ha=false
 fly deploy -c tyrbo-deploy/fly.redis.staging.toml --ha=false
-SHA=$(git rev-parse HEAD)   # any full-SHA tag published by tyrbo-release.yml
+SHA=$(git rev-parse HEAD)   # any full-SHA tag published by tyrbo-release.yml; HEAD (≥ 80d55d544f) includes PR #18
 fly deploy -c tyrbo-deploy/fly.api.staging.toml    --image ghcr.io/farebear/tyrbo-engine-api:$SHA    --ha=false
 fly deploy -c tyrbo-deploy/fly.worker.staging.toml --image ghcr.io/farebear/tyrbo-engine-worker:$SHA --ha=false
 ```

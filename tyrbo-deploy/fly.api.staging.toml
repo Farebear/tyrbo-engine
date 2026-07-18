@@ -10,12 +10,15 @@
 #   AP_TYRBO_JWT_PUBLIC_KEY  AP_TYRBO_WEBHOOK_SECRET
 #   (AP_TYRBO_API_URL stays unset until the product API ships its receiver in S5/M2b;
 #    add AP_SSRF_ALLOW_LIST alongside it if the URL is private)
+#   PLATFORM_OAUTH2 (hero-provider Connect): AP_TYRBO_OAUTH_<PROVIDER>_CLIENT_ID /
+#   AP_TYRBO_OAUTH_<PROVIDER>_CLIENT_SECRET — read api-side by tyrbo-oauth-clients.ts,
+#   NOT sandbox-propagated (token exchange runs in the API, not the piece child).
 
 app = "tyrbo-engine-api-staging"
 primary_region = "iad"
 
 [build]
-image = "ghcr.io/farebear/tyrbo-engine-api:f460c4cf05782618b6900e95bc836b54e6570a6b"
+image = "ghcr.io/farebear/tyrbo-engine-api:80d55d544f64931f4c5c45a00377ffd5349ba137"
 
 [env]
 AP_CONTAINER_TYPE = "APP"
