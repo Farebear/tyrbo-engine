@@ -1,13 +1,24 @@
+// TYRBO-PATCH: every dropdown is scoped to the connection's bound guild.
+//
+// Upstream fanned out over GET /users/@me/guilds and then listed each guild's channels —
+// with a shared bot token that would enumerate EVERY tenant's servers. The fork drops
+// that call entirely: the guild id comes from the connection (discordBotAuth.resolve),
+// and channels/roles are read directly from that one guild.
 import { HttpMethod, httpClient } from '@activepieces/pieces-common';
-import { Channel, Guild } from '../common/models';
+import { Channel, Role } from '../common/models';
 import { Property } from '@activepieces/pieces-framework';
 import { discordAuth } from '../auth';
+import { discordBotAuth, DiscordBotAuth } from './bot-auth';
 
 export interface Member {
   user: {
     id: string;
     username: string;
   };
+}
+
+function disabledDropdown(placeholder: string) {
+  return { disabled: true, options: [] as { value: string; label: string }[], placeholder };
 }
 
 export const discordCommon = {
@@ -19,56 +30,32 @@ export const discordCommon = {
     refreshers: [],
     options: async ({ auth }) => {
       if (!auth) {
-        return {
-          disabled: true,
-          options: [],
-          placeholder: 'Please connect your bot first',
-        };
+        return disabledDropdown('Please connect your Discord bot first');
       }
 
-      const request = {
+      let resolved: DiscordBotAuth;
+      try {
+        resolved = discordBotAuth.resolve(auth);
+      } catch (error) {
+        return disabledDropdown(error instanceof Error ? error.message : 'Reconnect the Discord bot');
+      }
+
+      const res = await httpClient.sendRequest<Channel[]>({
         method: HttpMethod.GET,
-        url: 'https://discord.com/api/v9/users/@me/guilds',
-        headers: {
-           Authorization: 'Bot ' + auth.secret_text,
-        },
+        url: `https://discord.com/api/v9/guilds/${resolved.guildId}/channels`,
+        headers: { Authorization: 'Bot ' + resolved.secretText },
+      });
+
+      if (res.body.length === 0) {
+        return disabledDropdown('No channels found — is the Tyrbo bot in this server?');
+      }
+
+      return {
+        options: res.body.map((channel) => ({
+          value: channel.id,
+          label: channel.name,
+        })),
       };
-
-      const res = await httpClient.sendRequest<Guild[]>(request);
-      const options: { options: { value: string; label: string }[] } = {
-        options: [],
-      };
-
-      if (res.body.length === 0)
-        return {
-          disabled: true,
-          options: [],
-          placeholder: 'No guilds found, please add the bot to a guild first',
-        };
-
-      await Promise.all(
-        res.body.map(async (guild) => {
-          const requestChannels = {
-            method: HttpMethod.GET,
-            url: 'https://discord.com/api/v9/guilds/' + guild.id + '/channels',
-            headers: {
-               Authorization: 'Bot ' + auth.secret_text,
-            },
-          };
-
-          const resChannels = await httpClient.sendRequest<Channel[]>(
-            requestChannels
-          );
-          resChannels.body.forEach((channel) => {
-            options.options.push({
-              value: channel.id,
-              label: channel.name,
-            });
-          });
-        })
-      );
-
-      return options;
     },
   }),
   roles: Property.Dropdown({
@@ -76,102 +63,36 @@ export const discordCommon = {
     displayName: 'Roles',
     description: 'List of roles',
     required: true,
-    refreshers: ['guild_id'],
-    options: async ({ auth, guild_id }) => {
-      if (!auth) {
-        return {
-          disabled: true,
-          options: [],
-          placeholder: 'Please connect your bot first',
-        };
-      }
-
-      if (!guild_id) {
-        return {
-          disabled: true,
-          options: [],
-          placeholder: 'Please select a guild first',
-        };
-      }
-
-      const request = {
-        method: HttpMethod.GET,
-        url: `https://discord.com/api/v9/guilds/${guild_id}/roles`,
-        headers: {
-           Authorization: 'Bot ' + auth.secret_text,
-        },
-      };
-
-      const res = await httpClient.sendRequest<Guild[]>(request);
-
-      const options: { options: { value: string; label: string }[] } = {
-        options: [],
-      };
-
-      if (res.body.length === 0)
-        return {
-          disabled: true,
-          options: [],
-          placeholder: 'No roles found, please add the bot to a guild first',
-        };
-
-      await Promise.all(
-        res.body.map(async (role) => {
-          options.options.push({
-            value: role.id,
-            label: role.name,
-          });
-        })
-      );
-
-      return options;
-    },
-  }),
-  guilds: Property.Dropdown({
-    auth: discordAuth,
-    displayName: 'Guilds',
-    description: 'List of guilds',
-    required: true,
     refreshers: [],
     options: async ({ auth }) => {
       if (!auth) {
-        return {
-          disabled: true,
-          options: [],
-          placeholder: 'Please connect your bot first',
-        };
+        return disabledDropdown('Please connect your Discord bot first');
       }
 
-      const request = {
+      let resolved: DiscordBotAuth;
+      try {
+        resolved = discordBotAuth.resolve(auth);
+      } catch (error) {
+        return disabledDropdown(error instanceof Error ? error.message : 'Reconnect the Discord bot');
+      }
+
+      const res = await httpClient.sendRequest<Role[]>({
         method: HttpMethod.GET,
-        url: 'https://discord.com/api/v9/users/@me/guilds',
-        headers: {
-           Authorization: 'Bot ' + auth.secret_text,
-        },
+        url: `https://discord.com/api/v9/guilds/${resolved.guildId}/roles`,
+        headers: { Authorization: 'Bot ' + resolved.secretText },
+      });
+
+      if (res.body.length === 0) {
+        return disabledDropdown('No roles found in this server');
+      }
+
+      return {
+        options: res.body.map((role) => ({
+          value: role.id,
+          label: role.name,
+        })),
       };
-
-      const res = await httpClient.sendRequest<Guild[]>(request);
-      const options: { options: { value: string; label: string }[] } = {
-        options: [],
-      };
-
-      if (res.body.length === 0)
-        return {
-          disabled: true,
-          options: [],
-          placeholder: 'No guilds found, please add the bot to a guild first',
-        };
-
-      await Promise.all(
-        res.body.map(async (guild) => {
-          options.options.push({
-            value: guild.id,
-            label: guild.name,
-          });
-        })
-      );
-
-      return options;
     },
   }),
+  resolveAuth: discordBotAuth.resolve,
 };

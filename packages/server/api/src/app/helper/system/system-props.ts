@@ -134,6 +134,12 @@ export enum AppSystemProp {
     TYRBO_API_URL = 'TYRBO_API_URL',
     TYRBO_WEBHOOK_SECRET = 'TYRBO_WEBHOOK_SECRET',
     TYRBO_OAUTH_CLIENTS = 'TYRBO_OAUTH_CLIENTS',
+    // TYRBO-PATCH: shared platform Discord bot (tyrbo-discord-bot.ts). ONE
+    // Tyrbo-owned bot token, injected server-side into per-connection guild
+    // bindings so users never paste a token. CLIENT_ID (public app id) builds
+    // the "add the bot to your server" install URL surfaced at connect time.
+    TYRBO_DISCORD_BOT_TOKEN = 'TYRBO_DISCORD_BOT_TOKEN',
+    TYRBO_DISCORD_CLIENT_ID = 'TYRBO_DISCORD_CLIENT_ID',
     EVENT_DESTINATION_TIMEOUT_SECONDS = 'EVENT_DESTINATION_TIMEOUT_SECONDS',
     CANARY_APP_URL = 'CANARY_APP_URL',
     IS_CANARY_APP = 'IS_CANARY_APP',

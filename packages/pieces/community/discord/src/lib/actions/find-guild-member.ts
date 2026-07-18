@@ -16,7 +16,6 @@ export const discordFindGuildMemberByUsername = createAction({
   aiMetadata: { description: 'Lists members of a guild, returning their user IDs and usernames for the given guild ID. Use to look up a member ID before role, kick, or ban actions, or to enumerate who is in a server. Read-only and idempotent; requires the Server Members privileged intent to be enabled for the bot.', idempotent: true },
   displayName: 'List guild members',
   props: {
-    guild_id: discordCommon.guilds,
     shortText: Property.ShortText({
       displayName: 'Search',
       description: 'Search for a member',
@@ -25,11 +24,12 @@ export const discordFindGuildMemberByUsername = createAction({
   },
 
   async run(configValue) {
+    const { secretText, guildId } = discordCommon.resolveAuth(configValue.auth);
     const request: HttpRequest<any> = {
       method: HttpMethod.GET,
-      url: `https://discord.com/api/v9/guilds/${configValue.propsValue.guild_id}/members`,
+      url: `https://discord.com/api/v9/guilds/${guildId}/members`,
       headers: {
-        authorization: `Bot ${configValue.auth.secret_text}`,
+        authorization: `Bot ${secretText}`,
         'Content-Type': 'application/json',
       },
     };

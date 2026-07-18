@@ -15,7 +15,6 @@ export const discordDeleteGuildRole = createAction({
   audience: 'both',
   aiMetadata: { description: 'Permanently deletes a role from a guild, identified by guild ID and role ID, with an optional audit-log reason; the role is removed from all members. Use to remove an unwanted role. Requires the bot to have Manage Roles permission; idempotent in end state, since deleting an already-removed role leaves it gone.', idempotent: true },
   props: {
-    guild_id: discordCommon.guilds,
     role_id: discordCommon.roles,
     deletion_reason: Property.ShortText({
       displayName: 'Deletion reason',
@@ -24,11 +23,12 @@ export const discordDeleteGuildRole = createAction({
     }),
   },
   async run(configValue) {
+    const { secretText, guildId } = discordCommon.resolveAuth(configValue.auth);
     const request: HttpRequest = {
-      url: `https://discord.com/api/v9/guilds/${configValue.propsValue.guild_id}/roles/${configValue.propsValue.role_id}`,
+      url: `https://discord.com/api/v9/guilds/${guildId}/roles/${configValue.propsValue.role_id}`,
       method: HttpMethod.DELETE,
       headers: {
-        Authorization: `Bot ${configValue.auth.secret_text}`,
+        Authorization: `Bot ${secretText}`,
         'Content-Type': 'application/json',
         'X-Audit-Log-Reason': `${configValue.propsValue.deletion_reason}`,
       },

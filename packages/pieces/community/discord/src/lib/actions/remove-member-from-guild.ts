@@ -15,7 +15,6 @@ export const discordRemoveMemberFromGuild = createAction({
   aiMetadata: { description: 'Kicks a member from a guild, identified by guild ID and user ID; the user may rejoin later via an invite. Use to remove someone without a permanent ban. Requires the bot to have Kick Members permission; idempotent, since removing an absent member yields the same end state.', idempotent: true },
   displayName: 'Remove member from guild',
   props: {
-    guild_id: discordCommon.guilds,
     user_id: Property.ShortText({
       displayName: 'User ID',
       description: 'The user id of the member',
@@ -24,11 +23,12 @@ export const discordRemoveMemberFromGuild = createAction({
   },
 
   async run(configValue) {
+    const { secretText, guildId } = discordCommon.resolveAuth(configValue.auth);
     const request: HttpRequest<any> = {
       method: HttpMethod.DELETE,
-      url: `https://discord.com/api/v9/guilds/${configValue.propsValue.guild_id}/members/${configValue.propsValue.user_id}`,
+      url: `https://discord.com/api/v9/guilds/${guildId}/members/${configValue.propsValue.user_id}`,
       headers: {
-        authorization: `Bot ${configValue.auth.secret_text}`,
+        authorization: `Bot ${secretText}`,
         'Content-Type': 'application/json',
       },
     };
