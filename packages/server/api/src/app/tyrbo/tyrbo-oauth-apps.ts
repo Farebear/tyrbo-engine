@@ -50,6 +50,15 @@ const tyrboOAuthAppsController: FastifyPluginAsyncZod = async (app) => {
             previous: null,
         }
     })
+
+    // Public discovery for the product's connector gallery: the piece names
+    // with a Tyrbo-managed OAuth client, so the web retires its "coming soon"
+    // badge straight from this single source of truth instead of a second
+    // hand-maintained env list. Piece names only — no client ids, no secrets —
+    // so anonymous access is safe.
+    app.get('/pieces', ConfiguredOAuthPiecesRequest, async (): Promise<ConfiguredOAuthPieces> => {
+        return { pieces: tyrboOAuthClients.configuredPieceNames() }
+    })
 }
 
 export function listOAuthApps(platformId: string): OAuthApp[] {
@@ -131,4 +140,14 @@ const ListOAuthAppsRequest = {
             cursor: z.string().optional(),
         }),
     },
+}
+
+const ConfiguredOAuthPiecesRequest = {
+    config: {
+        security: securityAccess.public(),
+    },
+}
+
+type ConfiguredOAuthPieces = {
+    pieces: string[]
 }

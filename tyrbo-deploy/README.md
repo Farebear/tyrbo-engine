@@ -117,8 +117,10 @@ fly secrets set -a tyrbo-engine-worker-staging AP_WORKER_TOKEN=...
 # Hero-provider OAuth (PLATFORM_OAUTH2, engine PR #18) — set one pair per hero app,
 # api-side only (token exchange runs in the API, so these are NOT sandbox-propagated).
 # Redirect URI to register in each provider console: https://<api-app-frontend>/redirect.
-# Add each configured provider id to TYRBO_CONFIGURED_OAUTH_PROVIDERS on the web app
-# (Vercel) to retire its gallery "coming soon" badge. Provider suffixes:
+# Setting the client pair is all it takes: the product web reads the configured
+# pieces from the engine's public GET /v1/oauth-apps/pieces and retires the
+# gallery "coming soon" badge automatically — no Vercel env var to maintain.
+# Provider suffixes:
 # GOOGLE, SLACK, GITHUB, NOTION, DROPBOX, MICROSOFT_OUTLOOK, HUBSPOT, ASANA, CLICKUP, MAILCHIMP.
 fly secrets set -a tyrbo-engine-api-staging \
   AP_TYRBO_OAUTH_SLACK_CLIENT_ID=... AP_TYRBO_OAUTH_SLACK_CLIENT_SECRET=...
