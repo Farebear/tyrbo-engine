@@ -9210,7 +9210,7 @@
     },
     "packages/pieces/community/trello": {
       "name": "@activepieces/piece-trello",
-      "version": "0.4.10",
+      "version": "0.5.0",
       "dependencies": {
         "@activepieces/core-piece-types": "workspace:*",
         "@activepieces/core-utils": "workspace:*",
@@ -9218,9 +9218,11 @@
         "@activepieces/pieces-framework": "workspace:*",
         "dayjs": "1.11.9",
         "form-data": "4.0.6",
+        "zod": "4.3.6",
       },
       "devDependencies": {
         "tslib": "2.6.2",
+        "vitest": "3.2.6",
       },
     },
     "packages/pieces/community/truelayer": {

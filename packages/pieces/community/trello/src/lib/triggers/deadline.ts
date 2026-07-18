@@ -3,6 +3,8 @@ import { TriggerStrategy, createTrigger, PiecePropValueSchema, Property, AppConn
 import { DedupeStrategy, Polling, pollingHelper } from '@activepieces/pieces-common';
 import dayjs from 'dayjs';
 import { trelloCommon, getCardsInBoard, getCardsInList } from '../common';
+// TYRBO-PATCH: source key + token from the resolved connection value.
+import { toTrelloCreds } from '../common/auth';
 
 interface Props {
     board_id: string;
@@ -15,8 +17,9 @@ const polling: Polling<AppConnectionValueForAuthProperty<typeof trelloAuth>, Pro
     strategy: DedupeStrategy.TIMEBASED,
     async items({ auth, propsValue, lastFetchEpochMS }) {
         const { board_id, list_id_opt, time_before_due, time_unit } = propsValue;
+        const { key, token } = toTrelloCreds(auth);
         const getCards = list_id_opt ? getCardsInList : getCardsInBoard;
-        const cards: any[] = await getCards(auth.username, auth.password, list_id_opt || board_id);
+        const cards: any[] = await getCards(key, token, list_id_opt || board_id);
 
         if(lastFetchEpochMS ===0)
         {

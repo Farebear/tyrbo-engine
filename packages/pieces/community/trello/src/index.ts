@@ -17,47 +17,47 @@ import { deleteCardAttachment } from './lib/actions/card-attachment/delete-card-
 import { cardMovedTrigger } from './lib/triggers/cardMoved';
 import { newCardTrigger } from './lib/triggers/newCard';
 import { deadlineTrigger } from './lib/triggers/deadline';
+// TYRBO-PATCH: shared bridge that turns the injected/legacy connection value into { key, token }.
+import { toTrelloCreds } from './lib/common/auth';
 
+// TYRBO-PATCH: Tyrbo-managed Trello connect. Users no longer paste an API key —
+// the platform holds a single Trello Power-Up API key server-side and each user
+// approves via Trello's authorize flow to mint a per-user token, which is all
+// that is stored here. The key is injected server-side onto the resolved
+// connection value (worker controller at run time, app-connection service for
+// validation), so the piece only ever handles the token. See
+// .agents/features/trello-shared-connect.md.
 const markdownProperty = `
-To obtain your API key and token, follow these steps:
+Connect your Trello account by authorizing access — no API key needed. You will be redirected to Trello to grant access, and a personal token is minted and stored for you.
 
-1. Go to https://trello.com/power-ups/admin.
-2. Click **New** to create a new power-up.
-3. Enter power-up information, and click **Create**.
-4. From the API Key page, click **Generate a new API key**.
-5. Copy **API Key** and enter it into the Trello API Key connection.
-6. On the right side of the page, find the text *"you can manually generate a Token"* and click the **Token** link.**Do not use the Secret field below the API key**.
-7. Authorize the app and copy the generated token.
-8. Paste the token into the Trello Token field.
+If you already have a token from the workspace Power-Up, you can paste it below instead.
 `;
-export const trelloAuth = PieceAuth.BasicAuth({
+export const trelloAuth = PieceAuth.CustomAuth({
   description: markdownProperty,
   required: true,
-  username: {
-    displayName: 'API Key',
-    description: 'Trello API Key',
+  props: {
+    token: PieceAuth.SecretText({
+      displayName: 'Token',
+      description: 'Trello token minted for your account',
+      required: true,
+    }),
   },
-  password: {
-    displayName: 'Token',
-    description: 'Trello Token',
-  },
+  // The stored value is only { token }; the platform API key is merged onto the
+  // props server-side (as `username`, token as `password`) before validate() runs.
+  // Legacy BYO connections arrive as { username, password }. Both resolve through
+  // toTrelloCreds. A missing platform key on a Tyrbo instance surfaces here as an
+  // invalid connection rather than a silent failure at run time.
   validate: async ({ auth }) => {
-    const { username, password } = auth;
-    if (!username || !password) {
-      return {
-        valid: false,
-        error: 'Empty API Key or Token',
-      };
-    }
     try {
+      const { key, token } = toTrelloCreds(auth);
       const request: HttpRequest = {
         method: HttpMethod.GET,
         url:
           `https://api.trello.com/1/members/me/boards` +
           `?key=` +
-          username +
+          key +
           `&token=` +
-          password,
+          token,
       };
       await httpClient.sendRequest(request);
       return {
@@ -66,7 +66,8 @@ export const trelloAuth = PieceAuth.BasicAuth({
     } catch (e) {
       return {
         valid: false,
-        error: 'Invalid API Key or Token',
+        error:
+          'Invalid Trello token, or Trello is not configured on this instance.',
       };
     }
   },
@@ -85,11 +86,13 @@ export const trello = createPiece({
       auth: trelloAuth,
       baseUrl: () => 'https://api.trello.com/1',
       authLocation: 'queryParams',
+      // TYRBO-PATCH: source key + token from the injected/legacy value.
       authMapping: async (auth) => {
+        const { key, token } = toTrelloCreds(auth);
         return {
-          key: auth.username,
-          token: auth.password
-        }
+          key,
+          token,
+        };
       }
     })
   ],

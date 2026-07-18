@@ -1,10 +1,8 @@
 {
   "Project management tool for teams": "Project management tool for teams",
-  "API Key": "API Key",
-  "Trello API Key": "Trello API Key",
   "Token": "Token",
-  "Trello Token": "Trello Token",
-  "\nTo obtain your API key and token, follow these steps:\n\n1. Go to https://trello.com/power-ups/admin.\n2. Click **New** to create a new power-up.\n3. Enter power-up information, and click **Create**.\n4. From the API Key page, click **Generate a new API key**.\n5. Copy **API Key** and enter it into the Trello API Key connection.\n6. On the right side of the page, find the text *\"you can manually generate a Token\"* and click the **Token** link.**Do not use the Secret field below the API key**.\n7. Authorize the app": "\nTo obtain your API key and token, follow these steps:\n\n1. Go to https://trello.com/power-ups/admin.\n2. Click **New** to create a new power-up.\n3. Enter power-up information, and click **Create**.\n4. From the API Key page, click **Generate a new API key**.\n5. Copy **API Key** and enter it into the Trello API Key connection.\n6. On the right side of the page, find the text *\"you can manually generate a Token\"* and click the **Token** link.**Do not use the Secret field below the API key**.\n7. Authorize the app and copy the generated token.\n8. Paste the token into the Trello Token field.\n",
+  "Trello token minted for your account": "Trello token minted for your account",
+  "\nConnect your Trello account by authorizing access — no API key needed. You will be redirected to Trello to grant access, and a personal token is minted and stored for you.\n\nIf you already have a token from the workspace Power-Up, you can paste it below instead.\n": "\nConnect your Trello account by authorizing access — no API key needed. You will be redirected to Trello to grant access, and a personal token is minted and stored for you.\n\nIf you already have a token from the workspace Power-Up, you can paste it below instead.\n",
   "Create Card": "Create Card",
   "Get Card": "Get Card",
   "Update Card": "Update Card",

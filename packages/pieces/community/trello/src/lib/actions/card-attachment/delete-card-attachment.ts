@@ -5,6 +5,8 @@ import {
   HttpMethod,
 } from '@activepieces/pieces-common';
 import { trelloCommon } from '../../common';
+// TYRBO-PATCH: source key + token from the resolved connection value.
+import { toTrelloCreds } from '../../common/auth';
 import { trelloAuth } from '../../..';
 
 export const deleteCardAttachment = createAction({
@@ -28,14 +30,15 @@ export const deleteCardAttachment = createAction({
   },
 
   async run(context) {
+    const { key, token } = toTrelloCreds(context.auth);
     const request: HttpRequest = {
       method: HttpMethod.DELETE,
       url:
         `${trelloCommon.baseUrl}cards/${context.propsValue['card_id']}/attachments/${context.propsValue['attachment_id']}` +
         `?key=` +
-        context.auth.username +
+        key +
         `&token=` +
-        context.auth.password,
+        token,
       headers: {
         Accept: 'application/json',
       },

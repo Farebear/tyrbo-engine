@@ -63,6 +63,7 @@ import { triggerModule } from './trigger/trigger.module'
 import { tyrboAuthBridgeModule } from './tyrbo/tyrbo-auth-bridge'
 import { tyrboOAuthAppsModule, tyrboPlatformOAuth2Service } from './tyrbo/tyrbo-oauth-apps'
 import { tyrboProjectModule } from './tyrbo/tyrbo-project-module'
+import { tyrboTrelloConnectModule } from './tyrbo/tyrbo-trello-connect'
 import { platformUserModule } from './user/platform/platform-user-module'
 import { invitationModule } from './user-invitations/user-invitation.module'
 import { variableModule } from './variable/variable.module'
@@ -257,6 +258,9 @@ export const setupApp = async (app: FastifyInstance): Promise<FastifyInstance> =
     // connections, which upstream leaves as an unimplemented EE seam.
     await app.register(tyrboOAuthAppsModule)
     setPlatformOAuthService(tyrboPlatformOAuth2Service(app.log))
+    // TYRBO-PATCH: Trello shared-connect authorize-URL endpoint (validation-time
+    // key injection is wired directly into the app-connection service).
+    await app.register(tyrboTrelloConnectModule)
     await app.register(communityPiecesModule)
 
     const isCanaryApp = system.getBoolean(AppSystemProp.IS_CANARY_APP) ?? false

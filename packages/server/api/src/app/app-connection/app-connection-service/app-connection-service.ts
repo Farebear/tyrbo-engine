@@ -17,6 +17,8 @@ import {
 import { projectRepo } from '../../project/project-service'
 import { containsSecretManagerReference, projectMemberService, secretManagersService } from '../../tyrbo/ce-defaults'
 import { tyrboDiscordBot } from '../../tyrbo/tyrbo-discord-bot'
+// TYRBO-PATCH: inject the platform Trello API key for connection validation.
+import { injectTrelloPlatformKey } from '../../tyrbo/tyrbo-trello-connect'
 import { userService } from '../../user/user-service'
 import { userInteractionWatcher } from '../../workers/user-interaction-watcher'
 import {
@@ -646,10 +648,11 @@ const validateConnectionValue = async (
                 pieceName,
                 projectId,
                 // TYRBO-PATCH: give the discord piece's validate() the shared bot token
-                // (+ client id for the install URL) so it can confirm the bot is in the
-                // bound guild. Injected into a throwaway copy — `value` (returned below and
-                // persisted) never carries the token. No-op for every other piece.
-                auth: tyrboDiscordBot.injectForValidation({ pieceName, value }),
+                // (+ client id for the install URL), and the trello piece's validate()
+                // the platform API key. Injected into a throwaway copy — `value`
+                // (returned below and persisted) never carries the secret. Each is a
+                // no-op for the other piece and for every non-Tyrbo piece.
+                auth: injectTrelloPlatformKey({ pieceName, value: tyrboDiscordBot.injectForValidation({ pieceName, value }) }),
             }, log)
     }
 

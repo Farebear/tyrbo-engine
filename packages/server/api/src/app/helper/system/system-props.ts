@@ -134,6 +134,14 @@ export enum AppSystemProp {
     TYRBO_API_URL = 'TYRBO_API_URL',
     TYRBO_WEBHOOK_SECRET = 'TYRBO_WEBHOOK_SECRET',
     TYRBO_OAUTH_CLIENTS = 'TYRBO_OAUTH_CLIENTS',
+    // TYRBO-PATCH: single platform-owned Trello Power-Up API key
+    // (tyrbo-trello-connect.ts). The Trello piece stores only a per-user token;
+    // this key is injected server-side onto the resolved connection value at both
+    // runtime (app-connection-worker-controller.ts) and validation
+    // (app-connection-service.ts) so it never reaches the sandboxed engine env.
+    // Unset => the piece falls back to the legacy BYO key+token paste. See
+    // .agents/features/trello-shared-connect.md.
+    TYRBO_TRELLO_API_KEY = 'TYRBO_TRELLO_API_KEY',
     // TYRBO-PATCH: shared platform Discord bot (tyrbo-discord-bot.ts). ONE
     // Tyrbo-owned bot token, injected server-side into per-connection guild
     // bindings so users never paste a token. CLIENT_ID (public app id) builds
