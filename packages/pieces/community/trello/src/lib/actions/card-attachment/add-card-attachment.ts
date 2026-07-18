@@ -6,6 +6,8 @@ import {
   QueryParams,
 } from '@activepieces/pieces-common';
 import { trelloCommon } from '../../common';
+// TYRBO-PATCH: source key + token from the resolved connection value.
+import { toTrelloCreds } from '../../common/auth';
 import { trelloAuth } from '../../..';
 import FormData from "form-data";
 
@@ -42,6 +44,7 @@ export const addCardAttachment = createAction({
   },
 
   async run(context) {
+    const { key, token } = toTrelloCreds(context.auth);
     const attachment = context.propsValue.attachment;
     const qs:QueryParams = {}
     
@@ -66,9 +69,9 @@ export const addCardAttachment = createAction({
       url:
         `${trelloCommon.baseUrl}cards/${context.propsValue['card_id']}/attachments` +
         `?key=` +
-        context.auth.username +
+        key +
         `&token=` +
-        context.auth.password,
+        token,
       headers: {
         Accept: 'application/json',
         ...formData.getHeaders()

@@ -1,6 +1,8 @@
 import { trelloAuth } from '../..';
 import { TriggerStrategy, createTrigger } from '@activepieces/pieces-framework';
 import { getCardDetail, getCardsInBoard, getCardsInList, trelloCommon } from '../common';
+// TYRBO-PATCH: source key + token from the resolved connection value.
+import { toTrelloCreds } from '../common/auth';
 import { TrelloNewCard } from '../common/props/card';
 import { isNil } from '@activepieces/pieces-framework';
 import { WebhookHandshakeStrategy } from '@activepieces/pieces-framework';
@@ -25,8 +27,9 @@ export const newCardTrigger = createTrigger({
 		return { status: 200 }
 	},
 	async onEnable(context) {
+		const creds = toTrelloCreds(context.auth);
 		const element_id = context.propsValue.list_id_opt || context.propsValue.board_id;
-		const webhooks = await trelloCommon.list_webhooks(context.auth);
+		const webhooks = await trelloCommon.list_webhooks(creds);
 		const webhook = webhooks.find(
 			(webhook) => webhook.idModel === element_id && webhook.callbackURL === context.webhookUrl,
 		);
@@ -35,7 +38,7 @@ export const newCardTrigger = createTrigger({
 			return;
 		}
 		const response = await trelloCommon.create_webhook(
-			context.auth,
+			creds,
 			element_id,
 			context.webhookUrl,
 		);
@@ -46,12 +49,13 @@ export const newCardTrigger = createTrigger({
 		if (isNil(webhook_id)) {
 			return;
 		}
-		const webhooks = await trelloCommon.list_webhooks(context.auth);
+		const creds = toTrelloCreds(context.auth);
+		const webhooks = await trelloCommon.list_webhooks(creds);
 		const webhook = webhooks.find((webhook) => webhook.callbackURL === context.webhookUrl);
 		if (!webhook) {
 			return;
 		}
-		await trelloCommon.delete_webhook(context.auth, webhook_id);
+		await trelloCommon.delete_webhook(creds, webhook_id);
 	},
 	async run(context) {
 		const body = context.payload.body as TrelloNewCard;
@@ -64,9 +68,10 @@ export const newCardTrigger = createTrigger({
 			}
 		}
 
+		const creds = toTrelloCreds(context.auth);
 		const card = await getCardDetail(
-			context.auth.username,
-			context.auth.password,
+			creds.key,
+			creds.token,
 			body.action.display.entities.card.id,
 		);
 
@@ -75,10 +80,11 @@ export const newCardTrigger = createTrigger({
 	async test(context) {
 		let cards: Array<Record<string, unknown>> = [];
 		try {
+			const creds = toTrelloCreds(context.auth);
 			const getListFunction = context.propsValue.list_id_opt ? getCardsInList : getCardsInBoard;
 			cards = await getListFunction(
-				context.auth.username,
-				context.auth.password,
+				creds.key,
+				creds.token,
 				context.propsValue.list_id_opt || context.propsValue.board_id,
 			);
 

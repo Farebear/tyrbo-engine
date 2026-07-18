@@ -1,3 +1,4 @@
+import { isNil } from '@activepieces/core-utils'
 import { ContextVersion } from '@activepieces/pieces-framework'
 import { AppConnection, AppConnectionStatus, AppConnectionType, AppConnectionValue, ConnectionExpiredError, ConnectionLoadingError, ConnectionNotFoundError, ExecutionError, FetchError } from '@activepieces/shared'
 import { utils } from '../utils'
@@ -25,7 +26,8 @@ export const createConnectionResolver = ({ projectId, engineToken, apiUrl, conte
                 if (connection.status === AppConnectionStatus.ERROR) {
                     throw new ConnectionExpiredError(externalId)
                 }
-                return getConnectionValue(connection, contextVersion)
+                // TYRBO-PATCH: inject the platform Trello API key at run time.
+                return getConnectionValue(injectTrelloPlatformKey(connection), contextVersion)
             }))
 
             if (connectionValueError) {
@@ -38,6 +40,40 @@ export const createConnectionResolver = ({ projectId, engineToken, apiUrl, conte
                 })
             }
             return connectionValue
+        },
+    }
+}
+
+// TYRBO-PATCH: Tyrbo-managed Trello connect. The forked Trello piece stores only
+// a per-user token (CUSTOM_AUTH { token }); the single platform Power-Up API key
+// lives in AP_TYRBO_TRELLO_API_KEY. Rewrite the connection into the BASIC_AUTH
+// shape the piece reads at run time ({ username: <apiKey>, password: <token> }) —
+// the same shape legacy BYO paste connections already carry, so a single code
+// path serves both. No-op for every other piece, when the key is unset (BYO /
+// non-Tyrbo deploys), or when the value is not CUSTOM_AUTH-with-token (legacy
+// BASIC_AUTH connections pass straight through). Validation uses a separate
+// server-side injection (executeValidateAuth bypasses this resolver).
+const TRELLO_PIECE_NAME = '@activepieces/piece-trello'
+
+const injectTrelloPlatformKey = (connection: AppConnection): AppConnection => {
+    const apiKey = process.env.AP_TYRBO_TRELLO_API_KEY
+    if (connection.pieceName !== TRELLO_PIECE_NAME || isNil(apiKey) || apiKey === '') {
+        return connection
+    }
+    if (connection.value.type !== AppConnectionType.CUSTOM_AUTH) {
+        return connection
+    }
+    const token = connection.value.props?.token
+    if (isNil(token) || typeof token !== 'string' || token === '') {
+        return connection
+    }
+    return {
+        ...connection,
+        type: AppConnectionType.BASIC_AUTH,
+        value: {
+            type: AppConnectionType.BASIC_AUTH,
+            username: apiKey,
+            password: token,
         },
     }
 }

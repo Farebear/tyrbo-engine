@@ -5,6 +5,8 @@ import {
   HttpMethod,
 } from '@activepieces/pieces-common';
 import { trelloCommon } from '../../common';
+// TYRBO-PATCH: source key + token from the resolved connection value.
+import { toTrelloCreds } from '../../common/auth';
 import { TrelloCard } from '../../common/props/card';
 import { trelloAuth } from '../../..';
 
@@ -43,6 +45,7 @@ export const createCard = createAction({
   },
 
   async run(context) {
+    const { key, token } = toTrelloCreds(context.auth);
     const request: HttpRequest = {
       method: HttpMethod.POST,
       url:
@@ -50,9 +53,9 @@ export const createCard = createAction({
         `?idList=` +
         context.propsValue['list_id'] +
         `&key=` +
-        context.auth.username +
+        key +
         `&token=` +
-        context.auth.password,
+        token,
       headers: {
         Accept: 'application/json',
       },

@@ -134,6 +134,13 @@ export enum AppSystemProp {
     TYRBO_API_URL = 'TYRBO_API_URL',
     TYRBO_WEBHOOK_SECRET = 'TYRBO_WEBHOOK_SECRET',
     TYRBO_OAUTH_CLIENTS = 'TYRBO_OAUTH_CLIENTS',
+    // TYRBO-PATCH: single platform-owned Trello Power-Up API key. The Trello
+    // piece (@activepieces/piece-trello) stores only a per-user token; this key
+    // is injected server-side for validation (tyrbo-trello-connect.ts) and by
+    // the engine connection-resolver at run time (read there as the raw
+    // AP_TYRBO_TRELLO_API_KEY env var). Unset => the piece falls back to the
+    // legacy BYO key+token paste. See .agents/features/trello-shared-connect.md.
+    TYRBO_TRELLO_API_KEY = 'TYRBO_TRELLO_API_KEY',
     EVENT_DESTINATION_TIMEOUT_SECONDS = 'EVENT_DESTINATION_TIMEOUT_SECONDS',
     CANARY_APP_URL = 'CANARY_APP_URL',
     IS_CANARY_APP = 'IS_CANARY_APP',

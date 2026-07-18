@@ -28,6 +28,13 @@ const RedirectPage: React.FC = React.memo(() => {
     hasCheckedParams.current = true;
     const params = new URLSearchParams(location.search);
     const code = params.get('code');
+    // TYRBO-PATCH: Tyrbo-managed Trello connect returns the minted token in the
+    // URL fragment (response_type=token), never the query string, so read it
+    // from location.hash and post it back to the opener the same way `code` is.
+    const hash = location.hash.startsWith('#')
+      ? location.hash.slice(1)
+      : location.hash;
+    const token = new URLSearchParams(hash).get('token');
     const state = tryParseState(params.get(STATE_QUERY_PARAM));
     if (state && state[LOGIN_QUERY_PARAM] && code) {
       const providerName = state[PROVIDER_NAME_QUERY_PARAM];
@@ -74,10 +81,19 @@ const RedirectPage: React.FC = React.memo(() => {
         '*',
       );
     }
-    if (!window.opener && !code) {
+    // TYRBO-PATCH: deliver the Trello token to the opener.
+    if (window.opener && token) {
+      window.opener.postMessage(
+        {
+          token: token,
+        },
+        '*',
+      );
+    }
+    if (!window.opener && !code && !token) {
       navigate('/');
     }
-  }, [location.search]);
+  }, [location.search, location.hash]);
 
   return <LoadingScreen />;
 });

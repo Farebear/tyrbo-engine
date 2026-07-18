@@ -16,6 +16,8 @@ import {
 } from '../../pieces/metadata/piece-metadata-service'
 import { projectRepo } from '../../project/project-service'
 import { containsSecretManagerReference, projectMemberService, secretManagersService } from '../../tyrbo/ce-defaults'
+// TYRBO-PATCH: inject the platform Trello API key for connection validation.
+import { injectTrelloValidationKey } from '../../tyrbo/tyrbo-trello-connect'
 import { userService } from '../../user/user-service'
 import { userInteractionWatcher } from '../../workers/user-interaction-watcher'
 import {
@@ -661,6 +663,11 @@ const engineValidateAuth = async (
     }
     const { pieceName, auth, projectId, platformId } = params
 
+    // TYRBO-PATCH: inject the platform Trello API key so the piece's validate()
+    // can reach Trello (validation bypasses the engine connection-resolver).
+    // No-op for every other piece; the stored value is unchanged.
+    const connectionValue = injectTrelloValidationKey({ pieceName, value: auth })
+
     const pieceMetadata = await pieceMetadataService(log).getOrThrow({
         name: pieceName,
         version: undefined,
@@ -674,7 +681,7 @@ const engineValidateAuth = async (
         }),
         projectId,
         platformId,
-        connectionValue: auth,
+        connectionValue,
         jobType: WorkerJobType.EXECUTE_VALIDATION,
     }, log)
 

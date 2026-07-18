@@ -1,6 +1,9 @@
-import { BasicAuthPropertyValue, Property } from '@activepieces/pieces-framework';
+import { Property } from '@activepieces/pieces-framework';
 import { httpClient, HttpRequest, HttpMethod } from '@activepieces/pieces-common';
 import { trelloAuth } from '../..';
+// TYRBO-PATCH: read credentials through the shared bridge (key + token) instead
+// of the raw BasicAuth value, so injected and legacy connections behave the same.
+import { toTrelloCreds, TrelloCreds } from './auth';
 
 export interface WebhookInformation {
 	id: string;
@@ -30,13 +33,9 @@ export const trelloCommon = {
 				};
 			}
 
-			const basicAuthProperty = auth as BasicAuthPropertyValue;
-			const user = await getAuthorisedUser(basicAuthProperty.username, basicAuthProperty.password);
-			const boards = await listBoards(
-				basicAuthProperty.username,
-				basicAuthProperty.password,
-				user['id'],
-			);
+			const { key, token } = toTrelloCreds(auth);
+			const user = await getAuthorisedUser(key, token);
+			const boards = await listBoards(key, token, user['id']);
 
 			return {
 				options: boards.map((board: { id: string; name: string }) => ({
@@ -62,12 +61,8 @@ export const trelloCommon = {
 				};
 			}
 
-			const basicAuthProperty = auth as BasicAuthPropertyValue;
-			const lists = await listBoardLists(
-				basicAuthProperty.username,
-				basicAuthProperty.password,
-				board_id as string,
-			);
+			const { key, token } = toTrelloCreds(auth);
+			const lists = await listBoardLists(key, token, board_id as string);
 
 			return {
 				options: lists.map((list: { id: string; name: string }) => ({
@@ -92,12 +87,8 @@ export const trelloCommon = {
 					options: [],
 				};
 			}
-			const basicAuthProperty = auth as BasicAuthPropertyValue;
-			const lists = await listBoardLists(
-				basicAuthProperty.username,
-				basicAuthProperty.password,
-				board_id as string,
-			);
+			const { key, token } = toTrelloCreds(auth);
+			const lists = await listBoardLists(key, token, board_id as string);
 
 			return {
 				options: lists.map((list: { id: string; name: string }) => ({
@@ -123,13 +114,9 @@ export const trelloCommon = {
 				};
 			}
 
-			const basicAuthProperty = auth as BasicAuthPropertyValue;
-			const user = await getAuthorisedUser(basicAuthProperty.username, basicAuthProperty.password);
-			const boards = await listBoards(
-				basicAuthProperty.username,
-				basicAuthProperty.password,
-				user['id'],
-			);
+			const { key, token } = toTrelloCreds(auth);
+			const user = await getAuthorisedUser(key, token);
+			const boards = await listBoards(key, token, user['id']);
 
 			return {
 				options: boards.map((board: { id: string; name: string }) => ({
@@ -154,12 +141,8 @@ export const trelloCommon = {
 				};
 			}
 
-			const basicAuthProperty = auth as BasicAuthPropertyValue;
-			const labels = await listBoardLabels(
-				basicAuthProperty.username,
-				basicAuthProperty.password,
-				board_id as string,
-			);
+			const { key, token } = toTrelloCreds(auth);
+			const labels = await listBoardLabels(key, token, board_id as string);
 
 			return {
 				options: labels.map((label: { id: string; name: string; color: string }) => ({
@@ -169,15 +152,15 @@ export const trelloCommon = {
 			};
 		},
 	}),
-	create_webhook: async (auth: BasicAuthPropertyValue, list_id: string, webhookUrl: string) => {
+	create_webhook: async (creds: TrelloCreds, list_id: string, webhookUrl: string) => {
 		const request: HttpRequest = {
 			method: HttpMethod.POST,
 			url:
 				`${trelloCommon.baseUrl}webhooks` +
 				`?key=` +
-				auth.username +
+				creds.key +
 				`&token=` +
-				auth.password +
+				creds.token +
 				`&callbackURL=` +
 				webhookUrl +
 				`&idModel=` +
@@ -187,24 +170,24 @@ export const trelloCommon = {
 
 		return response.body;
 	},
-	delete_webhook: async (auth: BasicAuthPropertyValue, webhook_id: string) => {
+	delete_webhook: async (creds: TrelloCreds, webhook_id: string) => {
 		const request: HttpRequest = {
 			method: HttpMethod.DELETE,
 			url:
 				`${trelloCommon.baseUrl}webhooks/${webhook_id}` +
 				`?key=` +
-				auth.username +
+				creds.key +
 				`&token=` +
-				auth.password,
+				creds.token,
 		};
 		const response = await httpClient.sendRequest(request);
 
 		return response.body;
 	},
-	list_webhooks: async (auth: BasicAuthPropertyValue) => {
+	list_webhooks: async (creds: TrelloCreds) => {
 		const request: HttpRequest = {
 			method: HttpMethod.GET,
-			url: `${trelloCommon.baseUrl}tokens/${auth.password}/webhooks` + `?key=` + auth.username,
+			url: `${trelloCommon.baseUrl}tokens/${creds.token}/webhooks` + `?key=` + creds.key,
 		};
 		const response = await httpClient.sendRequest<WebhookInformation[]>(request);
 
