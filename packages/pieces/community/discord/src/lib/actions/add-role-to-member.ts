@@ -15,7 +15,6 @@ export const discordAddRoleToMember = createAction({
   aiMetadata: { description: 'Assigns a role to a guild member, identified by guild ID, user ID, and role ID. Use to grant permissions or tag a user. Requires the bot to have Manage Roles and a higher role than the target; idempotent, since re-adding an already-assigned role leaves the member unchanged.', idempotent: true },
   displayName: 'Add role to member',
   props: {
-    guild_id: discordCommon.guilds,
     user_id: Property.ShortText({
       displayName: 'User ID',
       description: 'The user id of the member',
@@ -25,11 +24,12 @@ export const discordAddRoleToMember = createAction({
   },
 
   async run(configValue) {
+    const { secretText, guildId } = discordCommon.resolveAuth(configValue.auth);
     const request: HttpRequest<any> = {
       method: HttpMethod.PUT,
-      url: `https://discord.com/api/v9/guilds/${configValue.propsValue.guild_id}/members/${configValue.propsValue.user_id}/roles/${configValue.propsValue.role_id}`,
+      url: `https://discord.com/api/v9/guilds/${guildId}/members/${configValue.propsValue.user_id}/roles/${configValue.propsValue.role_id}`,
       headers: {
-        authorization: `Bot ${configValue.auth.secret_text}`,
+        authorization: `Bot ${secretText}`,
         'Content-Type': 'application/json',
       },
     };

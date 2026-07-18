@@ -16,7 +16,6 @@ export const discordFindChannel = createAction({
   aiMetadata: { description: 'Looks up a channel in a guild by its exact name and returns its channel ID, given the guild ID. Use to resolve a channel name into the ID required by message, rename, or delete actions. Read-only and idempotent; matching is exact and returns the first match.', idempotent: true },
   displayName: 'Find channel',
   props: {
-    guild_id: discordCommon.guilds,
     name: Property.ShortText({
       displayName: 'Name',
       description: 'The name of the channel',
@@ -25,11 +24,12 @@ export const discordFindChannel = createAction({
   },
 
   async run(configValue) {
+    const { secretText, guildId } = discordCommon.resolveAuth(configValue.auth);
     const request: HttpRequest<any> = {
       method: HttpMethod.GET,
-      url: `https://discord.com/api/v9/guilds/${configValue.propsValue.guild_id}/channels`,
+      url: `https://discord.com/api/v9/guilds/${guildId}/channels`,
       headers: {
-        authorization: `Bot ${configValue.auth.secret_text}`,
+        authorization: `Bot ${secretText}`,
         'Content-Type': 'application/json',
       },
     };

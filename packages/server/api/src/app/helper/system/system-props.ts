@@ -141,6 +141,12 @@ export enum AppSystemProp {
     // AP_TYRBO_TRELLO_API_KEY env var). Unset => the piece falls back to the
     // legacy BYO key+token paste. See .agents/features/trello-shared-connect.md.
     TYRBO_TRELLO_API_KEY = 'TYRBO_TRELLO_API_KEY',
+    // TYRBO-PATCH: shared platform Discord bot (tyrbo-discord-bot.ts). ONE
+    // Tyrbo-owned bot token, injected server-side into per-connection guild
+    // bindings so users never paste a token. CLIENT_ID (public app id) builds
+    // the "add the bot to your server" install URL surfaced at connect time.
+    TYRBO_DISCORD_BOT_TOKEN = 'TYRBO_DISCORD_BOT_TOKEN',
+    TYRBO_DISCORD_CLIENT_ID = 'TYRBO_DISCORD_CLIENT_ID',
     EVENT_DESTINATION_TIMEOUT_SECONDS = 'EVENT_DESTINATION_TIMEOUT_SECONDS',
     CANARY_APP_URL = 'CANARY_APP_URL',
     IS_CANARY_APP = 'IS_CANARY_APP',

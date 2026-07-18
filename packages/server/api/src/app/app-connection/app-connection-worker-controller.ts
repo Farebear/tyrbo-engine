@@ -3,6 +3,7 @@ import { AppConnection, EnginePrincipal, GetAppConnectionForWorkerRequestQuery }
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { securityAccess } from '../core/security/authorization/fastify-security'
 import { secretManagersService } from '../tyrbo/ce-defaults'
+import { tyrboDiscordBot } from '../tyrbo/tyrbo-discord-bot'
 import { appConnectionService } from './app-connection-service/app-connection-service'
 
 export const appConnectionWorkerController: FastifyPluginAsyncZod = async (app) => {
@@ -26,9 +27,14 @@ export const appConnectionWorkerController: FastifyPluginAsyncZod = async (app) 
             })
         }
 
+        const resolvedValue = await secretManagersService(request.log).resolveObject({ value: appConnection.value, projectIds: [enginePrincipal.projectId], platformId: enginePrincipal.platform.id, throwOnFailure: false })
+
         return {
             ...appConnection,
-            value: await secretManagersService(request.log).resolveObject({ value: appConnection.value, projectIds: [enginePrincipal.projectId], platformId: enginePrincipal.platform.id, throwOnFailure: false }),
+            // TYRBO-PATCH: merge the shared platform Discord bot token onto the resolved
+            // value so actions/dropdowns get `{ ...props, secret_text }`. No-op for every
+            // other piece, for non-CUSTOM_AUTH connections, and when the token is unset.
+            value: tyrboDiscordBot.injectForRuntime({ pieceName: appConnection.pieceName, value: resolvedValue }),
         }
     },
     )

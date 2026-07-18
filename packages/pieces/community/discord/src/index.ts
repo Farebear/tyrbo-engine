@@ -1,5 +1,8 @@
-import { createCustomApiCallAction } from '@activepieces/pieces-common';
-import { PieceAuth, createPiece } from '@activepieces/pieces-framework';
+// TYRBO-PATCH: createCustomApiCallAction removed — it exposes raw, unrestricted calls
+// with the shared bot token (e.g. GET /users/@me/guilds), which would let one tenant
+// reach every other tenant's servers. Every action here is scoped to the connection's
+// bound guild instead.
+import { createPiece } from '@activepieces/pieces-framework';
 import { PieceCategory } from '@activepieces/pieces-framework';
 import { discordAddRoleToMember } from './lib/actions/add-role-to-member';
 import { discordFindChannel } from './lib/actions/find-channel';
@@ -19,14 +22,6 @@ import { discordBanGuildMember } from './lib/actions/ban-a-guild-member';
 import { newMember } from './lib/triggers/new-member';
 import { sendMessageWithBot } from './lib/actions/send-message-with-bot'
 import { discordAuth } from './lib/auth';
-
-const markdown = `
-To obtain a token, follow these steps:
-1. Go to https://discord.com/developers/applications
-2. Click on Application (or create one if you don't have one)
-3. Click on Bot
-4. Copy the token
-`;
 
 export const discord = createPiece({
   displayName: 'Discord',
@@ -51,17 +46,6 @@ export const discord = createPiece({
     discordCreateGuildRole,
     discordDeleteGuildRole,
     discordBanGuildMember,
-    createCustomApiCallAction({
-      auth:discordAuth,
-      baseUrl: () => {
-        return 'https://discord.com/api/v9';
-      },
-      authMapping: async (auth) => {
-        return {
-          Authorization: `Bot ${auth.secret_text}`,
-        };
-      },
-    }),
   ],
   authors: [
     'creed983',

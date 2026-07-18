@@ -15,7 +15,6 @@ export const discordCreateGuildRole = createAction({
   audience: 'both',
   aiMetadata: { description: 'Creates a new role in a guild with the given name and optional color, hoist, and mentionable settings, identified by guild ID. Use to provision a role before assigning it to members. Requires the bot to have Manage Roles permission; not idempotent, since each call creates a separate role even with the same name.', idempotent: false },
   props: {
-    guild_id: discordCommon.guilds,
     role_name: Property.ShortText({
       displayName: 'Role Name',
       description: 'The name of the role',
@@ -44,11 +43,12 @@ export const discordCreateGuildRole = createAction({
     }),
   },
   async run(configValue) {
+    const { secretText, guildId } = discordCommon.resolveAuth(configValue.auth);
     const request: HttpRequest = {
-      url: `https://discord.com/api/v9/guilds/${configValue.propsValue.guild_id}/roles`,
+      url: `https://discord.com/api/v9/guilds/${guildId}/roles`,
       method: HttpMethod.POST,
       headers: {
-        authorization: `Bot ${configValue.auth.secret_text}`,
+        authorization: `Bot ${secretText}`,
         'Content-Type': 'application/json',
         'X-Audit-Log-Reason': `${configValue.propsValue.creation_reason}`,
       },
