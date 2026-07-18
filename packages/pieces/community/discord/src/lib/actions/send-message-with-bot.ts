@@ -41,6 +41,7 @@ export const sendMessageWithBot = createAction({
     }),
   },
   async run(configValue) {
+    const { secretText } = discordCommon.resolveAuth(configValue.auth);
     const channelId = configValue.propsValue.channel_id;
     const message = configValue.propsValue.message;
     const files = configValue.propsValue.files as FileObject[] ?? [];
@@ -59,7 +60,7 @@ export const sendMessageWithBot = createAction({
       method: HttpMethod.POST,
       url: `https://discord.com/api/v10/channels/${channelId}/messages`,
       headers: {
-        authorization: `Bot ${configValue.auth.secret_text}`,
+        authorization: `Bot ${secretText}`,
         'Content-Type': 'multipart/form-data',
       },
       body: formData,

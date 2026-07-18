@@ -15,7 +15,6 @@ export const discordRemoveRoleFromMember = createAction({
   aiMetadata: { description: 'Removes a role from a guild member, identified by guild ID, user ID, and role ID. Use to revoke permissions or untag a user. Requires the bot to have Manage Roles and a higher role than the target; idempotent, since removing a role the member does not have leaves them unchanged.', idempotent: true },
   displayName: 'Remove role from member',
   props: {
-    guild_id: discordCommon.guilds,
     user_id: Property.ShortText({
       displayName: 'User ID',
       description: 'The user id of the member',
@@ -25,11 +24,12 @@ export const discordRemoveRoleFromMember = createAction({
   },
 
   async run(configValue) {
+    const { secretText, guildId } = discordCommon.resolveAuth(configValue.auth);
     const request: HttpRequest<any> = {
       method: HttpMethod.DELETE,
-      url: `https://discord.com/api/v9/guilds/${configValue.propsValue.guild_id}/members/${configValue.propsValue.user_id}/roles/${configValue.propsValue.role_id}`,
+      url: `https://discord.com/api/v9/guilds/${guildId}/members/${configValue.propsValue.user_id}/roles/${configValue.propsValue.role_id}`,
       headers: {
-        authorization: `Bot ${configValue.auth.secret_text}`,
+        authorization: `Bot ${secretText}`,
         'Content-Type': 'application/json',
       },
     };

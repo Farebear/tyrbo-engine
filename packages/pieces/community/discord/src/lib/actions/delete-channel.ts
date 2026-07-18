@@ -19,11 +19,12 @@ export const discordDeleteChannel = createAction({
   },
 
   async run(configValue) {
+    const { secretText } = discordCommon.resolveAuth(configValue.auth);
     const request: HttpRequest = {
       method: HttpMethod.DELETE,
       url: `https://discord.com/api/v9/channels/${configValue.propsValue.channel_id}`,
       headers: {
-        authorization: `Bot ${configValue.auth.secret_text}`,
+        authorization: `Bot ${secretText}`,
         'Content-Type': 'application/json',
       },
     };

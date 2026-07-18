@@ -26,17 +26,17 @@ interface Member {
   joined_at: string;
 }
 
-const polling: Polling<AppConnectionValueForAuthProperty<typeof discordAuth>, { guildId: string | undefined; limit: number }> =
+const polling: Polling<AppConnectionValueForAuthProperty<typeof discordAuth>, { limit: number }> =
   {
     strategy: DedupeStrategy.TIMEBASED,
-    items: async ({ auth, propsValue: { guildId, limit } }) => {
-      if (!guildId) return [];
+    items: async ({ auth, propsValue: { limit } }) => {
+      const { secretText, guildId } = discordCommon.resolveAuth(auth);
 
       const request: HttpRequest = {
         method: HttpMethod.GET,
         url: `https://discord.com/api/v9/guilds/${guildId}/members?limit=${limit}`,
         headers: {
-           Authorization: 'Bot ' + auth.secret_text,
+           Authorization: 'Bot ' + secretText,
         },
       };
 
@@ -66,11 +66,6 @@ export const newMember = createTrigger({
       required: false,
       defaultValue: 50,
     }),
-    guildId: Property.ShortText({
-      displayName: 'Guild ID',
-      description: 'The ID of the Discord guild (server)',
-      required: true,
-    }),
   },
   sampleData: {},
   onEnable: async (context) => {
@@ -78,7 +73,6 @@ export const newMember = createTrigger({
       auth: context.auth,
       store: context.store,
       propsValue: {
-        guildId: context.propsValue.guildId,
         limit: context.propsValue.limit ?? 50,
       },
     });
@@ -88,7 +82,6 @@ export const newMember = createTrigger({
       auth: context.auth,
       store: context.store,
       propsValue: {
-        guildId: context.propsValue.guildId,
         limit: context.propsValue.limit ?? 50,
       },
     });
@@ -98,7 +91,6 @@ export const newMember = createTrigger({
       auth: context.auth,
       store: context.store,
       propsValue: {
-        guildId: context.propsValue.guildId,
         limit: context.propsValue.limit ?? 50,
       },
       files: context.files,
@@ -109,7 +101,6 @@ export const newMember = createTrigger({
       auth: context.auth,
       store: context.store,
       propsValue: {
-        guildId: context.propsValue.guildId,
         limit: context.propsValue.limit ?? 50,
       },
       files: context.files,

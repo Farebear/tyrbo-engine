@@ -15,7 +15,6 @@ export const discordCreateChannel = createAction({
   aiMetadata: { description: 'Creates a new channel in a guild with the given name and optional topic, identified by guild ID. Use to provision a channel before posting to it. Requires the bot to have Manage Channels permission; not idempotent, since each call creates a separate channel even with the same name.', idempotent: false },
   displayName: 'Create channel',
   props: {
-    guild_id: discordCommon.guilds,
     name: Property.ShortText({
       displayName: 'Name',
       description: 'The name of the new channel',
@@ -29,15 +28,16 @@ export const discordCreateChannel = createAction({
   },
 
   async run(configValue) {
+    const { secretText, guildId } = discordCommon.resolveAuth(configValue.auth);
     const request: HttpRequest = {
       method: HttpMethod.POST,
-      url: `https://discord.com/api/v9/guilds/${configValue.propsValue.guild_id}/channels`,
+      url: `https://discord.com/api/v9/guilds/${guildId}/channels`,
       body: {
         name: configValue.propsValue.name,
         topic: configValue.propsValue.topic,
       },
       headers: {
-        authorization: `Bot ${configValue.auth.secret_text}`,
+        authorization: `Bot ${secretText}`,
         'Content-Type': 'application/json',
       },
     };

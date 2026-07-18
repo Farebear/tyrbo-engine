@@ -26,6 +26,7 @@ export const discordSendApprovalMessage = createAction({
   },
   async run(ctx) {
     if (ctx.executionType === ExecutionType.BEGIN) {
+      const { secretText } = discordCommon.resolveAuth(ctx.auth);
       const waitpoint = await ctx.run.createWaitpoint({
         type: 'WEBHOOK',
       });
@@ -52,7 +53,7 @@ export const discordSendApprovalMessage = createAction({
           ],
         },
         headers: {
-          authorization: `Bot ${ctx.auth.secret_text}`,
+          authorization: `Bot ${secretText}`,
           'Content-Type': 'application/json',
         },
       };

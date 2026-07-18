@@ -24,6 +24,7 @@ const polling: Polling<AppConnectionValueForAuthProperty<typeof discordAuth>, { 
     items: async ({ auth, propsValue: { channel, limit } }) => {
       if (channel === undefined) return [];
 
+      const { secretText } = discordCommon.resolveAuth(auth);
       const request: HttpRequest = {
         method: HttpMethod.GET,
         url:
@@ -32,7 +33,7 @@ const polling: Polling<AppConnectionValueForAuthProperty<typeof discordAuth>, { 
           '/messages?limit=' +
           limit,
         headers: {
-           Authorization: 'Bot ' + auth.secret_text,
+           Authorization: 'Bot ' + secretText,
         },
       };
 
